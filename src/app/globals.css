@@ -1,0 +1,50 @@
+/*
+  globals.css
+  Basic global styles used across the app.
+
+  Notes:
+  - We set simple CSS variables for light/dark colors.
+  - The font variable (--font-poppins) is injected from `layout.js` using
+    Next's font loader; we use it as the primary font-family when present.
+*/
+
+@import "tailwindcss";
+
+:root {
+  /* primary colors for light theme */
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* Apply colors and preferred font. The `--font-poppins` variable is set
+   in `layout.js` (Next font loader). When not provided the browser will
+   fall back to system fonts. */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-poppins), system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* Small visual polish for the sidebar and main content */
+.sidebar-title {
+  color: var(--foreground);
+}
+
+/* Make links inside the aside more visible */
+aside a {
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  aside { display: none; }
+}
