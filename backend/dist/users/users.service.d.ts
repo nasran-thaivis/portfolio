@@ -7,6 +7,7 @@ export declare class UsersService {
         id: string;
         email: string;
         name: string;
+        username: string;
         createdAt: Date;
         updatedAt: Date;
     }[]>;
@@ -14,6 +15,7 @@ export declare class UsersService {
         id: string;
         email: string;
         name: string;
+        username: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -21,7 +23,25 @@ export declare class UsersService {
         id: string;
         email: string;
         name: string;
+        username: string;
         password: string;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    findByUsername(username: string): Promise<{
+        id: string;
+        email: string;
+        name: string;
+        username: string;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+    checkUsernameAvailability(username: string): Promise<boolean>;
+    validateUser(email: string, password: string): Promise<{
+        id: string;
+        email: string;
+        name: string;
+        username: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -29,6 +49,7 @@ export declare class UsersService {
         id: string;
         email: string;
         name: string;
+        username: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -36,6 +57,7 @@ export declare class UsersService {
         id: string;
         email: string;
         name: string;
+        username: string;
         createdAt: Date;
         updatedAt: Date;
     }>;

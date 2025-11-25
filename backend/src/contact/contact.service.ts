@@ -6,8 +6,24 @@ import { CreateContactDto, UpdateContactStatusDto } from './dto/contact.dto';
 export class ContactService {
   constructor(private prisma: PrismaService) {} 
 
-  async findAll() {
+  async findAll(userId?: string, username?: string) {
+    let whereClause: any = {};
+    
+    if (userId) {
+      whereClause.userId = userId;
+    } else if (username) {
+      const user = await this.prisma.user.findUnique({
+        where: { username },
+      });
+      if (user) {
+        whereClause.userId = user.id;
+      } else {
+        return []; // Return empty if user not found
+      }
+    }
+
     return this.prisma.contactRequest.findMany({
+      where: whereClause,
       orderBy: {
         createdAt: 'desc',
       },
@@ -20,9 +36,12 @@ export class ContactService {
     });
   }
 
-  async create(createContactDto: CreateContactDto) {
+  async create(createContactDto: CreateContactDto, userId?: string) {
     return this.prisma.contactRequest.create({
-      data: createContactDto,
+      data: {
+        ...createContactDto,
+        userId: userId || null, // Allow null for public contact forms
+      },
     });
   }
 

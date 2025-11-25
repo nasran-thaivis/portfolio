@@ -2,24 +2,68 @@
 
 import { useState, useEffect } from "react";
 import Container from "../components/Container";
-import ProjectCard from "../components/ProjectCard"; 
+import ProjectCard from "../components/ProjectCard";
+import { getApiUrl } from "../../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function PortfolioPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. ดึงข้อมูลจาก Backend เรา (Port 3005)
+  // 1. ดึงข้อมูลจาก Backend
   useEffect(() => {
     const fetchProjects = async () => {
       try {
+        // สร้าง AbortController สำหรับ timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+        
         // ยิงไปขอข้อมูล
-        const res = await fetch("http://localhost:3005/api/projects", {
-            cache: "no-store" 
-        });
-        const data = await res.json();
-        setProjects(data); // เก็บใส่ตัวแปร
+        const res = await fetch(getApiUrl("/api/projects"), {
+          cache: "no-store",
+          signal: controller.signal,
+        }).catch((fetchError) => {
+          // จัดการ network errors
+          if (fetchError.name === 'AbortError') {
+            console.warn("Projects fetch timeout");
+          } else if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+            console.warn("Projects fetch failed - backend may not be running");
+      } else {
+        console.warn("Projects fetch error:", fetchError);
+      }
+      throw fetchError;
+    }).finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+        // ตรวจสอบ response status ก่อน parse JSON
+        if (!res.ok) {
+          console.warn(`Failed to fetch projects: ${res.status} ${res.statusText}`);
+          setProjects([]); // Set empty array instead of crashing
+          return;
+        }
+
+        let data;
+        try {
+          data = await res.json();
+        } catch (jsonError) {
+          console.error("Failed to parse projects response:", jsonError);
+          setProjects([]); // Set empty array instead of crashing
+          return;
+        }
+
+        setProjects(data || []); // เก็บใส่ตัวแปร (ensure array)
       } catch (error) {
-        console.error("Error fetching projects:", error);
+        // จัดการทุกประเภทของ errors
+        if (error.name === 'AbortError') {
+          console.warn("Projects fetch timeout");
+        } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          console.warn("Projects fetch failed - backend may not be running");
+        } else {
+          console.error("Error fetching projects:", error);
+        }
+        setProjects([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -28,6 +72,23 @@ export default function PortfolioPage() {
     fetchProjects();
   }, []);
 
+  // แสดง loading ขณะตรวจสอบ authentication
+  if (authLoading) {
+    return (
+      <Container title="Portfolio">
+        <div className="text-center text-white py-20 animate-pulse">
+          กำลังโหลดข้อมูล...
+        </div>
+      </Container>
+    );
+  }
+
+  // ถ้ายังไม่ login → แสดงหน้าว่าง
+  if (!isAuthenticated) {
+    return <Container title="Portfolio"></Container>;
+  }
+
+  // ถ้า login แล้ว → แสดงเนื้อหา Portfolio
   return (
     <Container title="Portfolio">
       <div className="text-center mb-12">

@@ -6,49 +6,54 @@ export declare class ProjectsService {
     private prisma;
     private uploadService;
     constructor(prisma: PrismaService, uploadService: UploadService);
-    create(createProjectDto: CreateProjectDto): Promise<{
+    create(userId: string, createProjectDto: CreateProjectDto): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        link: string | null;
+        userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
-        link: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
-    findAll(): Promise<{
+    findAll(userId?: string, username?: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        link: string | null;
+        userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
-        link: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }[]>;
     findOne(id: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        link: string | null;
+        userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
-        link: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
-    update(id: string, updateProjectDto: UpdateProjectDto): Promise<{
+    update(userId: string, id: string, updateProjectDto: UpdateProjectDto): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        link: string | null;
+        userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
-        link: string | null;
-        createdAt: Date;
-        updatedAt: Date;
     }>;
-    remove(id: string): import(".prisma/client").Prisma.Prisma__ProjectClient<{
+    remove(userId: string, id: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        link: string | null;
+        userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
-        link: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-    }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
+    }>;
 }

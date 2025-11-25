@@ -18,20 +18,46 @@ let HeroSectionService = class HeroSectionService {
         this.prisma = prisma;
         this.uploadService = uploadService;
     }
-    async findOne() {
-        const hero = await this.prisma.heroSection.findUnique({
-            where: { id: 1 },
-        });
+    async findOne(userId, username) {
+        let hero;
+        if (userId) {
+            hero = await this.prisma.heroSection.findUnique({
+                where: { userId },
+            });
+        }
+        else if (username) {
+            const user = await this.prisma.user.findUnique({
+                where: { username },
+                include: { heroSection: true },
+            });
+            hero = user?.heroSection;
+        }
         let result;
         if (!hero) {
-            result = await this.prisma.heroSection.create({
-                data: {
-                    id: 1,
+            if (!userId && username) {
+                const user = await this.prisma.user.findUnique({
+                    where: { username },
+                });
+                if (user)
+                    userId = user.id;
+            }
+            if (userId) {
+                result = await this.prisma.heroSection.create({
+                    data: {
+                        userId,
+                        title: 'Welcome',
+                        description: 'This is my portfolio',
+                        imageUrl: 'https://placehold.co/1920x1080',
+                    },
+                });
+            }
+            else {
+                return {
                     title: 'Welcome',
                     description: 'This is my portfolio',
                     imageUrl: 'https://placehold.co/1920x1080',
-                },
-            });
+                };
+            }
         }
         else {
             result = hero;
@@ -41,7 +67,31 @@ let HeroSectionService = class HeroSectionService {
         }
         return result;
     }
-    async update(updateHeroSectionDto) {
+    async update(userIdOrUsername, updateHeroSectionDto) {
+        let userId = userIdOrUsername;
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrUsername);
+        if (!isUUID) {
+            const isNumericId = /^\d+$/.test(userIdOrUsername);
+            if (isNumericId) {
+                console.log(`[HeroSectionService] Using numeric userId: ${userIdOrUsername}`);
+                userId = userIdOrUsername;
+            }
+            else {
+                console.log(`[HeroSectionService] Looking up userId for username: ${userIdOrUsername}`);
+                const user = await this.prisma.user.findUnique({
+                    where: { username: userIdOrUsername },
+                    select: { id: true },
+                });
+                if (!user) {
+                    throw new Error(`User with username "${userIdOrUsername}" not found in database. Please make sure the user exists.`);
+                }
+                userId = user.id;
+                console.log(`[HeroSectionService] Found userId: ${userId} for username: ${userIdOrUsername}`);
+            }
+        }
+        else {
+            console.log(`[HeroSectionService] Using UUID userId: ${userIdOrUsername}`);
+        }
         const normalizedData = {
             ...updateHeroSectionDto,
             imageUrl: updateHeroSectionDto.imageUrl !== undefined
@@ -51,10 +101,10 @@ let HeroSectionService = class HeroSectionService {
                 : undefined,
         };
         const result = await this.prisma.heroSection.upsert({
-            where: { id: 1 },
+            where: { userId },
             update: normalizedData,
             create: {
-                id: 1,
+                userId,
                 title: 'Welcome',
                 description: 'This is my portfolio',
                 ...normalizedData,

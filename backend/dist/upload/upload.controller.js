@@ -21,14 +21,24 @@ let UploadController = class UploadController {
         this.uploadService = uploadService;
     }
     async uploadImage(file) {
-        if (!file) {
-            throw new common_1.BadRequestException('No file uploaded');
+        try {
+            console.log('[UploadController] Image upload request received');
+            if (!file) {
+                console.error('[UploadController] No file uploaded');
+                throw new common_1.BadRequestException('No file uploaded');
+            }
+            console.log(`[UploadController] Uploading file: ${file.originalname}, size: ${file.size} bytes, type: ${file.mimetype}`);
+            const url = await this.uploadService.uploadFile(file, 'images');
+            console.log(`[UploadController] File uploaded successfully: ${url}`);
+            return {
+                url,
+                message: 'File uploaded successfully',
+            };
         }
-        const url = await this.uploadService.uploadFile(file, 'images');
-        return {
-            url,
-            message: 'File uploaded successfully',
-        };
+        catch (error) {
+            console.error('[UploadController] Error uploading image:', error?.message || error);
+            throw error;
+        }
     }
     async getSignedUrl(url) {
         if (!url) {
@@ -108,6 +118,7 @@ __decorate([
         },
         fileFilter: (req, file, cb) => {
             if (!file.mimetype.startsWith('image/')) {
+                console.error(`[UploadController] Invalid file type: ${file.mimetype}`);
                 return cb(new common_1.BadRequestException('Only image files are allowed'), false);
             }
             cb(null, true);

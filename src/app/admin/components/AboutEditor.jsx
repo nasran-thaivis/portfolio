@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { getSignedImageUrl } from "../../../lib/imageUtils";
+// ปรับ import path ให้ตรงกับโครงสร้างโปรเจกต์ของคุณ
+import { getSignedImageUrl, normalizeImageUrl } from "../../../lib/imageUtils";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function AboutEditor() {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -13,10 +16,18 @@ export default function AboutEditor() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Load initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("http://localhost:3005/api/about-section");
+        const res = await fetch("/api/about-section");
+        
+        if (!res.ok) {
+          console.warn("[AboutEditor] Failed to fetch about section, using empty form");
+          setIsLoading(false);
+          return;
+        }
+        
         const data = await res.json();
         if (data) {
           setFormData({
@@ -25,7 +36,7 @@ export default function AboutEditor() {
           });
         }
       } catch (error) {
-        console.error(error);
+        console.error("[AboutEditor] Failed to load data", error);
       } finally {
         setIsLoading(false);
       }
@@ -33,7 +44,7 @@ export default function AboutEditor() {
     fetchData();
   }, []);
 
-  // Upload image from local file (S3 Upload)
+  // Upload image logic
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -51,12 +62,19 @@ export default function AboutEditor() {
     setIsUploading(true);
 
     try {
-      // อัปโหลดไป S3
       const formDataToUpload = new FormData();
       formDataToUpload.append('file', file);
 
-      const uploadRes = await fetch('http://localhost:3005/api/upload/image', {
+      const headers = {};
+      // Add auth headers for upload
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username && currentUser.username !== currentUser.id) {
+        headers['x-username'] = currentUser.username;
+      }
+
+      const uploadRes = await fetch('/api/upload/image', {
         method: 'POST',
+        headers,
         body: formDataToUpload,
       });
 
@@ -75,24 +93,68 @@ export default function AboutEditor() {
     }
   };
 
-  // Remove image
   const handleRemoveImage = () => {
     if (confirm("คุณต้องการลบรูปภาพนี้หรือไม่?")) {
       setFormData({ ...formData, imageUrl: "" });
     }
   };
 
+  // --- FIXED SAVE FUNCTION ---
   const handleSave = async (e) => {
     e.preventDefault();
+    
+    // Validate basics
+    if (!currentUser) {
+      alert("❌ กรุณา Login ก่อนบันทึกข้อมูล");
+      return;
+    }
+    
     try {
-      const res = await fetch("http://localhost:3005/api/about-section", {
+      const dataToSave = {
+        ...formData,
+        imageUrl: formData.imageUrl ? normalizeImageUrl(formData.imageUrl) : formData.imageUrl,
+      };
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      // 1. ใส่ User ID
+      if (currentUser?.id) {
+        headers['x-user-id'] = currentUser.id;
+      }
+
+      // 2. ใส่ Username โดยกรองไม่ให้ส่ง ID ไปผิดช่อง
+      const isValidUsername = (name, id) => {
+          return name && name !== id && name.length < 25;
+      };
+
+      if (isValidUsername(currentUser?.username, currentUser?.id)) {
+        headers['x-username'] = currentUser.username;
+      } else {
+         console.warn("Username ดูเหมือนจะเป็น ID หรือไม่ถูกต้อง จึงไม่ส่ง header x-username");
+         // headers['x-username'] = "Kam19"; // Uncomment บรรทัดนี้ถ้ายัง Error เดิม
+      }
+
+      console.log("Sending Headers:", headers);
+
+      const res = await fetch("/api/about-section", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers,
+        body: JSON.stringify(dataToSave),
       });
-      if (res.ok) alert("✅ Updated About Page!");
+      
+      if (res.ok) {
+        alert("✅ Updated About Page!");
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || `Error updating (${res.status})`;
+        console.error("Server Response Error:", errorMessage);
+        alert(`❌ ${errorMessage}`);
+      }
     } catch (error) {
-      alert("Error updating");
+      console.error("[AboutEditor] Save error:", error);
+      alert(`❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้: ${error.message}`);
     }
   };
 
@@ -123,7 +185,6 @@ export default function AboutEditor() {
         <div>
           <label className="block text-gray-700 font-semibold mb-1">Image</label>
           
-          {/* Upload & Remove Buttons */}
           <div className="flex gap-3 mb-4">
             <button
               type="button"
@@ -154,7 +215,6 @@ export default function AboutEditor() {
             )}
           </div>
 
-          {/* Hidden File Input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -163,7 +223,6 @@ export default function AboutEditor() {
             className="hidden"
           />
 
-          {/* Preview Image */}
           {formData.imageUrl && (
             <div className="mt-4 h-40 w-full rounded-lg overflow-hidden bg-gray-100 border">
               <img src={getSignedImageUrl(formData.imageUrl)} alt="Preview" className="w-full h-full object-cover" />

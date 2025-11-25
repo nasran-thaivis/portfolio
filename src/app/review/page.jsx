@@ -1,8 +1,9 @@
 import Container from "../components/Container";
+import { getApiUrl } from "../../lib/api";
 
 async function getReviews() {
   try {
-    const res = await fetch("http://localhost:3005/api/reviews", { cache: "no-store" });
+    const res = await fetch(getApiUrl("/api/reviews"), { cache: "no-store" });
     if (!res.ok) throw new Error("Failed");
     return res.json();
   } catch (error) {

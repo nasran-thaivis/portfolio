@@ -5,8 +5,8 @@ import Sanity from "../../../lib/sanity";
 import { PROJECTS } from "../../data/projects";
 
 // หน้ารายละเอียด project ตาม slug dynamic route
-export default async function ProjectDetail({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default async function ProjectDetail({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
 
   // พยายามดึงข้อมูลจาก Sanity ก่อน หากไม่พบให้ fallback ไปยัง data ใน repo
   let project = null;

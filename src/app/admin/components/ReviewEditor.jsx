@@ -1,37 +1,102 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function ReviewEditor() {
+  const { currentUser } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [formData, setFormData] = useState({ name: "", rating: 5, comment: "" });
 
   // 1. โหลดข้อมูล
   const fetchReviews = async () => {
-    const res = await fetch("http://localhost:3005/api/reviews");
-    const data = await res.json();
-    setReviews(data);
+    try {
+      // Prepare headers with authentication
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      // Use Next.js API route which proxies to backend
+      const res = await fetch("/api/reviews", {
+        headers,
+      });
+      
+      if (!res.ok) {
+        console.warn("[ReviewEditor] Failed to fetch reviews, using empty list");
+        setReviews([]);
+        return;
+      }
+      
+      const data = await res.json();
+      setReviews(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("[ReviewEditor] Failed to fetch reviews", error);
+      setReviews([]);
+    }
   };
 
-  useEffect(() => { fetchReviews(); }, []);
+  useEffect(() => { fetchReviews(); }, [currentUser]);
 
   // 2. เพิ่มรีวิว
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await fetch("http://localhost:3005/api/reviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
-    alert("✅ Review Added!");
-    setFormData({ name: "", rating: 5, comment: "" });
-    fetchReviews();
+    try {
+      // Prepare headers with authentication
+      const headers = { "Content-Type": "application/json" };
+      if (currentUser?.id) headers["x-user-id"] = currentUser.id;
+      if (currentUser?.username) headers["x-username"] = currentUser.username;
+
+      // Prepare body with username (backend requires it)
+      const body = {
+        ...formData,
+        username: currentUser?.username || "",
+      };
+
+      // Use Next.js API route which proxies to backend
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+      
+      if (res.ok) {
+        alert("✅ Review Added!");
+        setFormData({ name: "", rating: 5, comment: "" });
+        fetchReviews();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(`❌ ${errorData.error || "Failed to add review"}`);
+      }
+    } catch (error) {
+      console.error("[ReviewEditor] Failed to add review", error);
+      alert("❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่า Backend กำลังทำงานอยู่");
+    }
   };
 
   // 3. ลบรีวิว
   const handleDelete = async (id) => {
     if(!confirm("Delete this review?")) return;
-    await fetch(`http://localhost:3005/api/reviews/${id}`, { method: "DELETE" });
-    fetchReviews();
+    
+    try {
+      // Prepare headers with authentication
+      const headers = {};
+      if (currentUser?.id) headers["x-user-id"] = currentUser.id;
+      if (currentUser?.username) headers["x-username"] = currentUser.username;
+
+      const res = await fetch(`/api/reviews/${id}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      if (res.ok) {
+        fetchReviews();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(`❌ ${errorData.message || "Failed to delete review"}`);
+      }
+    } catch (error) {
+      console.error("[ReviewEditor] Failed to delete review", error);
+      alert("❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่า Backend กำลังทำงานอยู่");
+    }
   };
 
   return (

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getApiUrl } from "../../lib/api";
 
 // === Storage Keys ===
 const STORAGE_KEYS = {
@@ -45,21 +46,126 @@ export function AuthProvider({ children }) {
   }, []);
 
   // === ฟังก์ชัน: Register (สมัครสมาชิก) ===
-  const register = async (email, password, name) => {
+  const register = async (email, password, name, username) => {
     try {
-      // เรียก API เพื่อสร้าง user ใหม่
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, name }),
-      });
+      // Validate basic requirements
+      if (!username || username.trim().length === 0) {
+        return { success: false, message: "Username is required" };
+      }
 
-      const data = await response.json();
+      // เรียก API เพื่อสร้าง user ใหม่
+      let response;
+      try {
+        // สร้าง AbortController สำหรับ timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+        
+        response = await fetch(getApiUrl("/api/users/register"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password, name, username }),
+          signal: controller.signal,
+        }).finally(() => {
+          clearTimeout(timeoutId);
+        });
+      } catch (fetchError) {
+        // จัดการ network errors (เช่น backend ไม่ได้รัน, CORS, timeout)
+        // Fallback: ใช้ localStorage เมื่อ backend ไม่สามารถเชื่อมต่อได้
+        if (fetchError.name === 'AbortError' || (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))) {
+          // Backend timeout หรือไม่สามารถเชื่อมต่อได้ - ใช้ fallback mechanism
+          if (fetchError.name === 'AbortError') {
+            console.warn("Backend timeout, using fallback registration");
+          } else {
+            console.warn("Backend not available, using fallback registration");
+          }
+          
+          // Fallback: ใช้ localStorage
+          try {
+            const registeredUsers = JSON.parse(localStorage.getItem(STORAGE_KEYS.registeredUsers) || '[]');
+            
+            // ตรวจสอบว่า email หรือ username ซ้ำหรือไม่
+            const existingUser = registeredUsers.find(
+              (u) => u.email === email || u.username === username
+            );
+            
+            if (existingUser) {
+              return { 
+                success: false, 
+                message: existingUser.email === email 
+                  ? "Email already exists" 
+                  : "Username already exists"
+              };
+            }
+            
+            // สร้าง user ใหม่ (เก็บ password สำหรับ fallback login)
+            const newUser = {
+              id: Date.now().toString(),
+              email,
+              password, // เก็บ password สำหรับ fallback login (⚠️ ใน production ควร hash)
+              name,
+              username,
+              createdAt: new Date().toISOString(),
+            };
+            
+            registeredUsers.push(newUser);
+            localStorage.setItem(STORAGE_KEYS.registeredUsers, JSON.stringify(registeredUsers));
+            
+            // Login อัตโนมัติหลังสมัคร (ไม่ส่ง password กลับไป)
+            const userWithoutPassword = {
+              id: newUser.id,
+              email: newUser.email,
+              name: newUser.name,
+              username: newUser.username,
+              createdAt: newUser.createdAt,
+            };
+            localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(userWithoutPassword));
+            setCurrentUser(userWithoutPassword);
+            setIsAuthenticated(true);
+            
+            console.warn("⚠️ Using fallback registration (localStorage). Backend is not running.");
+            return { 
+              success: true, 
+              message: "Registration successful (offline mode)", 
+              user: userWithoutPassword 
+            };
+          } catch (fallbackError) {
+            console.error("Fallback registration failed:", fallbackError);
+            return { 
+              success: false, 
+              message: "Cannot connect to server. Please make sure the backend is running." 
+            };
+          }
+        } else {
+          return { success: false, message: `Network error: ${fetchError.message}` };
+        }
+      }
+
+      // ตรวจสอบ response status ก่อน parse JSON
+      if (!response.ok) {
+        let errorMessage = "Registration failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = `Registration failed: ${response.status} ${response.statusText}`;
+        }
+        console.error("Registration API error:", errorMessage);
+        return { success: false, message: errorMessage };
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error("Failed to parse registration response:", jsonError);
+        return { success: false, message: "Invalid response from server" };
+      }
 
       if (!data.success) {
-        return { success: false, message: data.message };
+        console.error("Registration failed:", data.message);
+        return { success: false, message: data.message || "Registration failed" };
       }
 
       // Login อัตโนมัติหลังสมัคร
@@ -68,10 +174,10 @@ export function AuthProvider({ children }) {
       setCurrentUser(userWithoutPassword);
       setIsAuthenticated(true);
 
-      return { success: true, message: "Registration successful" };
+      return { success: true, message: "Registration successful", user: userWithoutPassword };
     } catch (error) {
       console.error("Registration failed:", error);
-      return { success: false, message: "Registration failed" };
+      return { success: false, message: error.message || "Registration failed" };
     }
   };
 
@@ -79,18 +185,85 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       // เรียก API เพื่อตรวจสอบ credentials
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, action: "login" }),
-      });
+      let response;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+        
+        response = await fetch(getApiUrl("/api/users/login"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+          signal: controller.signal,
+        }).finally(() => {
+          clearTimeout(timeoutId);
+        });
+      } catch (fetchError) {
+        // Fallback: ใช้ localStorage เมื่อ backend ไม่สามารถเชื่อมต่อได้
+        if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+          console.warn("Backend not available, using fallback login");
+          
+          try {
+            const registeredUsers = JSON.parse(localStorage.getItem(STORAGE_KEYS.registeredUsers) || '[]');
+            const user = registeredUsers.find((u) => u.email === email);
+            
+            if (!user) {
+              return { success: false, message: "Invalid email or password" };
+            }
+            
+            // ตรวจสอบ password ใน fallback mode
+            if (user.password !== password) {
+              return { success: false, message: "Invalid email or password" };
+            }
+            
+            const userWithoutPassword = {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              username: user.username,
+              createdAt: user.createdAt,
+            };
+            
+            localStorage.setItem(STORAGE_KEYS.currentUser, JSON.stringify(userWithoutPassword));
+            setCurrentUser(userWithoutPassword);
+            setIsAuthenticated(true);
+            
+            console.warn("⚠️ Using fallback login (localStorage). Backend is not running.");
+            return { success: true, message: "Login successful (offline mode)", user: userWithoutPassword };
+          } catch (fallbackError) {
+            console.error("Fallback login failed:", fallbackError);
+            return { success: false, message: "Cannot connect to server. Please make sure the backend is running." };
+          }
+        }
+        
+        console.error("Login failed:", fetchError);
+        return { success: false, message: "Login failed" };
+      }
 
-      const data = await response.json();
+      // ตรวจสอบ response status ก่อน parse JSON
+      if (!response.ok) {
+        let errorMessage = "Login failed";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = `Login failed: ${response.status} ${response.statusText}`;
+        }
+        return { success: false, message: errorMessage };
+      }
+
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error("Failed to parse login response:", jsonError);
+        return { success: false, message: "Invalid response from server" };
+      }
 
       if (!data.success) {
-        return { success: false, message: data.message };
+        return { success: false, message: data.message || "Login failed" };
       }
 
       // บันทึก session (ไม่เก็บ password)
@@ -99,10 +272,22 @@ export function AuthProvider({ children }) {
       setCurrentUser(userWithoutPassword);
       setIsAuthenticated(true);
 
-      return { success: true, message: "Login successful" };
+      return { success: true, message: "Login successful", user: userWithoutPassword };
     } catch (error) {
       console.error("Login failed:", error);
-      return { success: false, message: "Login failed" };
+      return { success: false, message: error.message || "Login failed" };
+    }
+  };
+
+  // === ฟังก์ชัน: Check Username Availability ===
+  const checkUsernameAvailability = async (username) => {
+    try {
+      const response = await fetch(getApiUrl(`/api/users/check-username/${username}`));
+      const data = await response.json();
+      return data.available;
+    } catch (error) {
+      console.error("Failed to check username:", error);
+      return false;
     }
   };
 
@@ -126,6 +311,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    checkUsernameAvailability,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

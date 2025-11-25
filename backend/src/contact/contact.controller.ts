@@ -6,6 +6,7 @@ import {
   Delete, //HTTP Methods 
   Body, //ตัวดึงข้อมูล (จาก Body หรือ URL)
   Param, //ตัวดึงข้อมูล (จาก Param)
+  Req, // Request object
   HttpCode, // การจัดการ Status Code (200, 201, 404)
   HttpStatus, // การจัดการ Status Code (200, 201, 404)
   BadRequestException,
@@ -14,14 +15,20 @@ import {
 } from '@nestjs/common'; 
 import { ContactService } from './contact.service';
 import { CreateContactDto, UpdateContactStatusDto } from './dto/contact.dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('contact')
 export class ContactController {
-  constructor(private readonly contactService: ContactService) {}
+  constructor(
+    private readonly contactService: ContactService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
-  findAll() {
-    return this.contactService.findAll();
+  findAll(@Req() req: any) {
+    const userId = req.user?.id;
+    const username = req.query.username as string;
+    return this.contactService.findAll(userId, username);
   }
 
   @Get(':id')
@@ -31,11 +38,25 @@ export class ContactController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createContactDto: CreateContactDto) {
+  async create(@Body() createContactDto: CreateContactDto, @Req() req: any) {
     if (!createContactDto.name || !createContactDto.email || !createContactDto.message) {
       throw new BadRequestException('Missing required fields');
     }
-    return this.contactService.create(createContactDto);
+    // Get username from query (for public contact forms)
+    const username = req.query.userId as string; // Note: query param is named userId but contains username
+    let userId: string | undefined;
+    
+    if (username) {
+      // Find user by username
+      const user = await this.prisma.user.findUnique({
+        where: { username },
+      });
+      if (user) {
+        userId = user.id;
+      }
+    }
+    
+    return this.contactService.create(createContactDto, userId);
   }
 
   @Put(':id/status')

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common'; // <--- เพิ่ม NotFoundException
 import { CreateReviewDto } from './dto/create-review.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadService } from '../upload/upload.service';
@@ -10,12 +10,24 @@ export class ReviewsService {
     private uploadService: UploadService,
   ) {}
 
-  // 1. เพิ่มรีวิวใหม่
-  async create(createReviewDto: CreateReviewDto) {
+  // 1. แก้ type ของ argument แรกจาก userId เป็น username
+  async create(username: string, createReviewDto: CreateReviewDto) {
+    
+    // [ใหม่] ค้นหา User ID จาก username ที่ส่งเข้ามา
+    const user = await this.prisma.user.findUnique({
+      where: { username: username },
+    });
+
+    // ถ้าไม่เจอ user ชื่อนี้ ให้แจ้ง Error กลับไป
+    if (!user) {
+      throw new NotFoundException(`User with username "${username}" not found`);
+    }
+
     // แปลง rating ให้เป็น number เสมอ (กันเหนียว)
     // แปลง proxy URL กลับเป็น path ก่อนบันทึกลง database
     const data = {
       ...createReviewDto,
+      userId: user.id, // <--- [สำคัญ] ใช้ ID ที่เพิ่งหาเจอจาก Database มาใส่แทน
       rating: Number(createReviewDto.rating),
       avatarUrl: createReviewDto.avatarUrl 
         ? this.uploadService.normalizeImageUrl(createReviewDto.avatarUrl)
@@ -32,13 +44,29 @@ export class ReviewsService {
     return review;
   }
 
-  // 2. ดึงรีวิวทั้งหมด (เรียงจากใหม่ไปเก่า)
-  async findAll() {
+  // ... (ส่วน findAll และ remove ปล่อยไว้เหมือนเดิม)
+  async findAll(userId?: string, username?: string) {
+     // โค้ดเดิมของคุณ...
+     let whereClause: any = {};
+    
+    if (userId) {
+      whereClause.userId = userId;
+    } else if (username) {
+      const user = await this.prisma.user.findUnique({
+        where: { username },
+      });
+      if (user) {
+        whereClause.userId = user.id;
+      } else {
+        return []; // Return empty if user not found
+      }
+    }
+
     const reviews = await this.prisma.review.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
     });
 
-    // แปลง avatarUrl เป็น proxy URL สำหรับแต่ละ review
     return reviews.map((review) => {
       if (review.avatarUrl) {
         review.avatarUrl = this.uploadService.getProxyUrl(review.avatarUrl);
@@ -47,8 +75,12 @@ export class ReviewsService {
     });
   }
 
-  // 3. ลบรีวิว
-  remove(id: string) {
+  async remove(userId: string, id: string) {
+     // โค้ดเดิมของคุณ...
+    const review = await this.prisma.review.findUnique({ where: { id } });
+    if (!review || review.userId !== userId) {
+      throw new Error('Review not found or access denied');
+    }
     return this.prisma.review.delete({
       where: { id },
     });

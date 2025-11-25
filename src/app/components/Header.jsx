@@ -2,34 +2,71 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import LogoEditor from "./LogoEditor";
 import { useAuth } from "../contexts/AuthContext";
-
-// === Navigation Links สำหรับ Desktop และ Mobile ===
-const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/portfolio", label: "Portfolio" },
-  { href: "/review", label: "Review" },
-  { href: "/contact", label: "Contact" },
-];
+import { getUserProfileUrl, getAdminUrl } from "../../lib/user";
 
 // === Header Component (Responsive) ===
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isAuthenticated, currentUser, logout } = useAuth();
+  const pathname = usePathname();
+
+  // Extract username from pathname if in [username] route
+  const usernameMatch = pathname?.match(/^\/([^\/]+)/);
+  const currentUsername = usernameMatch ? usernameMatch[1] : null;
+  const isUserProfileRoute = currentUsername && currentUsername !== "login" && currentUsername !== "register" && currentUsername !== "admin";
+
+  // Get navigation links based on route
+  const getNavLinks = () => {
+    if (isUserProfileRoute && currentUser?.username === currentUsername) {
+      // User's own profile - show profile links
+      return [
+        { href: `/${currentUsername}`, label: "Home" },
+        { href: `/${currentUsername}/about`, label: "About" },
+        { href: `/${currentUsername}/portfolio`, label: "Portfolio" },
+        { href: `/${currentUsername}/review`, label: "Review" },
+        { href: `/${currentUsername}/contact`, label: "Contact" },
+      ];
+    } else if (isAuthenticated && currentUser) {
+      // Authenticated but not on profile route - show own profile links
+      return [
+        { href: getUserProfileUrl(currentUser.username), label: "Home" },
+        { href: `/${currentUser.username}/about`, label: "About" },
+        { href: `/${currentUser.username}/portfolio`, label: "Portfolio" },
+        { href: `/${currentUser.username}/review`, label: "Review" },
+        { href: `/${currentUser.username}/contact`, label: "Contact" },
+      ];
+    } else {
+      // Not authenticated - show public links
+      return [
+        { href: "/", label: "Home" },
+        { href: "/about", label: "About" },
+        { href: "/portfolio", label: "Portfolio" },
+        { href: "/review", label: "Review" },
+        { href: "/contact", label: "Contact" },
+      ];
+    }
+  };
+
+  const NAV_LINKS = getNavLinks();
 
   const closeMenu = () => setMenuOpen(false);
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--color-border)] bg-white shadow-sm text-[var(--color-text)]">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-4 sm:px-6">
-        {/* ส่วนที่ 1 (ซ้าย): Logo และชื่อ 'Nasran Salaeh' */}
+        {/* ส่วนที่ 1 (ซ้าย): Logo และชื่อ */}
         <div className="flex items-center gap-3">
           {/* Logo Editor: แสดง Logo ที่อัปโหลด (เก็บใน localStorage) - ซ่อนปุ่มควบคุมใน Header */}
           <LogoEditor size={40} showControls={false} />
-          <Link href="/" className="text-base font-semibold text-[var(--color-text)]" onClick={closeMenu}>
-            Nasran Salaeh
+          <Link 
+            href={isAuthenticated && currentUser ? getUserProfileUrl(currentUser.username) : "/"} 
+            className="text-base font-semibold text-[var(--color-text)]" 
+            onClick={closeMenu}
+          >
+            {isAuthenticated && currentUser ? currentUser.name : "Portfolio"}
           </Link>
         </div>
 
@@ -52,11 +89,11 @@ export default function Header() {
             <>
               {/* แสดง Username */}
               <span className="text-sm text-gray-600">
-                Welcome, <span className="text-[var(--color-text)] font-medium">{currentUser?.name}</span>
+                Welcome, <Link href={getUserProfileUrl(currentUser.username)} className="text-[var(--color-text)] font-medium hover:underline">{currentUser?.name}</Link>
               </span>
               {/* Admin Button */}
               <Link
-                href="/admin"
+                href={getAdminUrl(currentUser.username)}
                 className="px-4 py-2 bg-[var(--color-primary)] hover:opacity-90 text-white text-sm rounded-lg transition-all"
               >
                 Admin
@@ -71,6 +108,13 @@ export default function Header() {
             </>
           ) : (
             <>
+              {/* Register Button */}
+              <Link
+                href="/register"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-[var(--color-text)] text-sm rounded-lg transition-colors"
+              >
+                Sign Up
+              </Link>
               {/* Login Button */}
               <Link
                 href="/login"
@@ -118,10 +162,10 @@ export default function Header() {
               {isAuthenticated ? (
                 <>
                   <div className="px-3 py-2 text-sm text-gray-600">
-                    Welcome, <span className="text-[var(--color-text)] font-medium">{currentUser?.name}</span>
+                    Welcome, <Link href={getUserProfileUrl(currentUser.username)} className="text-[var(--color-text)] font-medium hover:underline">{currentUser?.name}</Link>
                   </div>
                   <Link
-                    href="/admin"
+                    href={getAdminUrl(currentUser.username)}
                     onClick={closeMenu}
                     className="block rounded px-3 py-2 bg-[var(--color-primary)] hover:opacity-90 text-white text-sm text-center transition-all"
                   >
@@ -138,13 +182,22 @@ export default function Header() {
                   </button>
                 </>
               ) : (
-                <Link
-                  href="/login"
-                  onClick={closeMenu}
-                  className="block rounded px-3 py-2 bg-[var(--color-primary)] hover:opacity-90 text-white text-sm text-center transition-all"
-                >
-                  Login
-                </Link>
+                <>
+                  <Link
+                    href="/register"
+                    onClick={closeMenu}
+                    className="block rounded px-3 py-2 bg-gray-100 hover:bg-gray-200 text-[var(--color-text)] text-sm text-center transition-colors mb-2"
+                  >
+                    Sign Up
+                  </Link>
+                  <Link
+                    href="/login"
+                    onClick={closeMenu}
+                    className="block rounded px-3 py-2 bg-[var(--color-primary)] hover:opacity-90 text-white text-sm text-center transition-all"
+                  >
+                    Login
+                  </Link>
+                </>
               )}
             </div>
           </nav>

@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { getSignedImageUrl } from "../../../lib/imageUtils";
+import { getSignedImageUrl, normalizeImageUrl } from "../../../lib/imageUtils";
+import { getApiUrl } from "../../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function PortfolioEditor() {
+  const { currentUser } = useAuth();
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -23,21 +26,39 @@ export default function PortfolioEditor() {
   // 1. ดึงข้อมูลจาก Backend (Port 3005)
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [currentUser]);
 
   const fetchProjects = async () => {
     try {
-      const res = await fetch("http://localhost:3005/api/projects");
+      // Prepare headers with authentication
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      // Use Next.js API route which proxies to backend
+      const res = await fetch("/api/projects", {
+        headers,
+      });
+      
+      if (!res.ok) {
+        console.warn("[PortfolioEditor] Failed to fetch projects, using empty list");
+        setProjects([]);
+        setIsLoading(false);
+        return;
+      }
+      
       const data = await res.json();
       // แปลง imageUrl เป็น full backend URL สำหรับแต่ละ project
-      const projectsWithFullUrls = data.map((project) => ({
+      const projectsWithFullUrls = (Array.isArray(data) ? data : []).map((project) => ({
         ...project,
         imageUrl: project.imageUrl ? getSignedImageUrl(project.imageUrl) : project.imageUrl,
       }));
       setProjects(projectsWithFullUrls);
       setIsLoading(false);
     } catch (error) {
-      console.error("Failed to fetch projects", error);
+      console.error("[PortfolioEditor] Failed to fetch projects", error);
+      // On error, show empty list - user can still add projects
+      setProjects([]);
       setIsLoading(false);
     }
   };
@@ -64,8 +85,14 @@ export default function PortfolioEditor() {
       const formDataToUpload = new FormData();
       formDataToUpload.append('file', file);
 
-      const uploadRes = await fetch('http://localhost:3005/api/upload/image', {
+      // Prepare headers with authentication
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      const uploadRes = await fetch('/api/upload/image', {
         method: 'POST',
+        headers,
         body: formDataToUpload,
       });
 
@@ -97,10 +124,23 @@ export default function PortfolioEditor() {
     if (!formData.title) return alert("Please enter a title");
 
     try {
-      const res = await fetch("http://localhost:3005/api/projects", {
+      // Normalize imageUrl to path before saving
+      const dataToSave = {
+        ...formData,
+        imageUrl: formData.imageUrl ? normalizeImageUrl(formData.imageUrl) : formData.imageUrl,
+      };
+
+      // Prepare headers with authentication
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      const res = await fetch("/api/projects", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers,
+        body: JSON.stringify(dataToSave),
       });
 
       if (res.ok) {
@@ -143,8 +183,14 @@ export default function PortfolioEditor() {
       const formDataToUpload = new FormData();
       formDataToUpload.append('file', file);
 
-      const uploadRes = await fetch('http://localhost:3005/api/upload/image', {
+      // Prepare headers with authentication
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      const uploadRes = await fetch('/api/upload/image', {
         method: 'POST',
+        headers,
         body: formDataToUpload,
       });
 
@@ -176,10 +222,30 @@ export default function PortfolioEditor() {
     if (!editingProject.title) return alert("Please enter a title");
 
     try {
-      const res = await fetch(`http://localhost:3005/api/projects/${editingProject.id}`, {
+      // Normalize imageUrl to path before saving
+      const dataToSave = {
+        ...editingProject,
+        imageUrl: editingProject.imageUrl ? normalizeImageUrl(editingProject.imageUrl) : editingProject.imageUrl,
+      };
+
+      // Prepare headers with authentication
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      // Prepare headers with authentication for PATCH request
+      const patchHeaders = {
+        "Content-Type": "application/json",
+      };
+      if (currentUser?.id) patchHeaders['x-user-id'] = currentUser.id;
+      if (currentUser?.username) patchHeaders['x-username'] = currentUser.username;
+
+      const res = await fetch(`/api/projects/${editingProject.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingProject),
+        headers: patchHeaders,
+        body: JSON.stringify(dataToSave),
       });
 
       if (res.ok) {
@@ -200,8 +266,14 @@ export default function PortfolioEditor() {
     if (!confirm("Are you sure you want to delete this project?")) return;
 
     try {
-      const res = await fetch(`http://localhost:3005/api/projects/${id}`, {
+      // Prepare headers with authentication
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      const res = await fetch(`/api/projects/${id}`, {
         method: "DELETE",
+        headers,
       });
 
       if (res.ok) {

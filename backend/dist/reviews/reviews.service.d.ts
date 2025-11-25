@@ -5,28 +5,31 @@ export declare class ReviewsService {
     private prisma;
     private uploadService;
     constructor(prisma: PrismaService, uploadService: UploadService);
-    create(createReviewDto: CreateReviewDto): Promise<{
+    create(username: string, createReviewDto: CreateReviewDto): Promise<{
         id: string;
         name: string;
+        createdAt: Date;
+        userId: string;
         rating: number;
         comment: string;
         avatarUrl: string | null;
-        createdAt: Date;
     }>;
-    findAll(): Promise<{
+    findAll(userId?: string, username?: string): Promise<{
         id: string;
         name: string;
+        createdAt: Date;
+        userId: string;
         rating: number;
         comment: string;
         avatarUrl: string | null;
-        createdAt: Date;
     }[]>;
-    remove(id: string): import(".prisma/client").Prisma.Prisma__ReviewClient<{
+    remove(userId: string, id: string): Promise<{
         id: string;
         name: string;
+        createdAt: Date;
+        userId: string;
         rating: number;
         comment: string;
         avatarUrl: string | null;
-        createdAt: Date;
-    }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
+    }>;
 }

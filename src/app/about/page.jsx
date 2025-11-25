@@ -2,21 +2,68 @@ import Container from "../components/Container";
 import { getSignedImageUrl } from "../../lib/imageUtils";
 // import Image from "next/image"; // ถ้าอยากใช้ next/image ก็เปิดบรรทัดนี้
 
+// Helper to get base URL for API calls
+function getBaseUrl() {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+}
+
 // 1. ฟังก์ชันดึงข้อมูล Server Side
 async function getAboutData() {
   try {
-    const res = await fetch("http://localhost:3005/api/about-section", {
+    // สร้าง AbortController สำหรับ timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+    
+    // Use Next.js API route which proxies to backend
+    const baseUrl = getBaseUrl();
+    const res = await fetch(`${baseUrl}/api/about-section`, {
       cache: "no-store",
+      signal: controller.signal,
+    }).catch((fetchError) => {
+      // จัดการ network errors
+      if (fetchError.name === 'AbortError') {
+        console.warn("About data fetch timeout");
+      } else if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+        console.warn("About data fetch failed - backend may not be running");
+      } else {
+        console.warn("About data fetch error:", fetchError);
+      }
+      throw fetchError;
+    }).finally(() => {
+      clearTimeout(timeoutId);
     });
-    if (!res.ok) throw new Error("Failed");
-    const data = await res.json();
+
+    // ตรวจสอบ response status ก่อน parse JSON
+    if (!res.ok) {
+      console.warn(`Failed to fetch about data: ${res.status} ${res.statusText}`);
+      return null;
+    }
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (jsonError) {
+      console.error("Failed to parse about data response:", jsonError);
+      return null;
+    }
+
     // แปลง imageUrl เป็น full backend URL
     if (data && data.imageUrl) {
       data.imageUrl = getSignedImageUrl(data.imageUrl);
     }
     return data;
   } catch (error) {
-    console.error(error);
+    // จัดการทุกประเภทของ errors
+    if (error.name === 'AbortError') {
+      console.warn("About data fetch timeout");
+    } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      console.warn("About data fetch failed - backend may not be running");
+    } else {
+      console.error("About data fetch error:", error);
+    }
     return null;
   }
 }

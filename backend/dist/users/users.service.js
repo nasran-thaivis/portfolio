@@ -22,6 +22,7 @@ let UsersService = class UsersService {
                 id: true,
                 email: true,
                 name: true,
+                username: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -34,6 +35,7 @@ let UsersService = class UsersService {
                 id: true,
                 email: true,
                 name: true,
+                username: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -48,12 +50,47 @@ let UsersService = class UsersService {
             where: { email },
         });
     }
+    async findByUsername(username) {
+        return this.prisma.user.findUnique({
+            where: { username },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                username: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+    }
+    async checkUsernameAvailability(username) {
+        const user = await this.prisma.user.findUnique({
+            where: { username },
+        });
+        return !user;
+    }
+    async validateUser(email, password) {
+        const user = await this.prisma.user.findUnique({
+            where: { email },
+        });
+        if (!user || user.password !== password) {
+            return null;
+        }
+        const { password: _, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+    }
     async create(createUserDto) {
-        const existingUser = await this.prisma.user.findUnique({
+        const existingEmail = await this.prisma.user.findUnique({
             where: { email: createUserDto.email },
         });
-        if (existingUser) {
+        if (existingEmail) {
             throw new common_1.ConflictException('Email already exists');
+        }
+        const existingUsername = await this.prisma.user.findUnique({
+            where: { username: createUserDto.username },
+        });
+        if (existingUsername) {
+            throw new common_1.ConflictException('Username already exists');
         }
         const user = await this.prisma.user.create({
             data: createUserDto,
@@ -61,6 +98,7 @@ let UsersService = class UsersService {
                 id: true,
                 email: true,
                 name: true,
+                username: true,
                 createdAt: true,
                 updatedAt: true,
             },
@@ -76,6 +114,7 @@ let UsersService = class UsersService {
                 id: true,
                 email: true,
                 name: true,
+                username: true,
                 createdAt: true,
                 updatedAt: true,
             },

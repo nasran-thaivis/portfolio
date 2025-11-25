@@ -1,24 +1,28 @@
 // src/projects/projects.controller.ts
 
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { CurrentUser } from '../common/decorators/user.decorator';
 
 @Controller('projects')
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  create(@Body() createProjectDto: CreateProjectDto) {
-    // 👇 เรียกใช้ฟังก์ชัน create ใน Service (ที่เชื่อม Prisma ไว้)
-    return this.projectsService.create(createProjectDto);
+  create(@CurrentUser() user: any, @Body() createProjectDto: CreateProjectDto) {
+    if (!user) {
+      throw new Error('Authentication required');
+    }
+    return this.projectsService.create(user.id, createProjectDto);
   }
 
   @Get()
-  findAll() {
-    // 👇 เรียกใช้ฟังก์ชัน findAll ใน Service
-    return this.projectsService.findAll();
+  findAll(@Req() req: any) {
+    const userId = req.user?.id;
+    const username = req.query.username as string;
+    return this.projectsService.findAll(userId, username);
   }
 
   @Get(':id')
@@ -27,12 +31,18 @@ export class ProjectsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
-    return this.projectsService.update(id, updateProjectDto);
+  update(@CurrentUser() user: any, @Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
+    if (!user) {
+      throw new Error('Authentication required');
+    }
+    return this.projectsService.update(user.id, id, updateProjectDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.projectsService.remove(id);
+  remove(@CurrentUser() user: any, @Param('id') id: string) {
+    if (!user) {
+      throw new Error('Authentication required');
+    }
+    return this.projectsService.remove(user.id, id);
   }
 }

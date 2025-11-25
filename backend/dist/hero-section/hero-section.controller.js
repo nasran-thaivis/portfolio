@@ -17,39 +17,79 @@ const common_1 = require("@nestjs/common");
 const hero_section_service_1 = require("./hero-section.service");
 const create_hero_section_dto_1 = require("./dto/create-hero-section.dto");
 const update_hero_section_dto_1 = require("./dto/update-hero-section.dto");
+const user_decorator_1 = require("../common/decorators/user.decorator");
 let HeroSectionController = class HeroSectionController {
     constructor(heroSectionService) {
         this.heroSectionService = heroSectionService;
     }
-    findOne() {
-        return this.heroSectionService.findOne();
+    async findOne(req) {
+        const userId = req.user?.id;
+        const username = req.query.username;
+        return this.heroSectionService.findOne(userId, username);
     }
-    update(updateHeroSectionDto) {
-        return this.heroSectionService.update(updateHeroSectionDto);
+    update(user, req, updateHeroSectionDto) {
+        let userId = user?.id;
+        if (!userId) {
+            userId = req.headers['x-user-id'];
+            if (!userId) {
+                const username = req.headers['x-username'];
+                if (username) {
+                    console.log(`[HeroSectionController] No authenticated user, but username provided: ${username}`);
+                    userId = username;
+                }
+            }
+        }
+        if (!userId) {
+            console.error('[HeroSectionController] Update attempted without authentication or userId/username');
+            throw new common_1.UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
+        }
+        console.log(`[HeroSectionController] Updating hero section for userId/username: ${userId}`);
+        return this.heroSectionService.update(userId, updateHeroSectionDto);
     }
-    create(createHeroSectionDto) {
-        return this.heroSectionService.update(createHeroSectionDto);
+    create(user, req, createHeroSectionDto) {
+        let userId = user?.id;
+        if (!userId) {
+            userId = req.headers['x-user-id'];
+            if (!userId) {
+                const username = req.headers['x-username'];
+                if (username) {
+                    console.log(`[HeroSectionController] No authenticated user, but username provided: ${username}`);
+                    userId = username;
+                }
+            }
+        }
+        if (!userId) {
+            console.error('[HeroSectionController] Create attempted without authentication or userId/username');
+            throw new common_1.UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
+        }
+        console.log(`[HeroSectionController] Creating hero section for userId/username: ${userId}`);
+        return this.heroSectionService.update(userId, createHeroSectionDto);
     }
 };
 exports.HeroSectionController = HeroSectionController;
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
 ], HeroSectionController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Patch)(),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [update_hero_section_dto_1.UpdateHeroSectionDto]),
+    __metadata("design:paramtypes", [Object, Object, update_hero_section_dto_1.UpdateHeroSectionDto]),
     __metadata("design:returntype", void 0)
 ], HeroSectionController.prototype, "update", null);
 __decorate([
     (0, common_1.Post)(),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_hero_section_dto_1.CreateHeroSectionDto]),
+    __metadata("design:paramtypes", [Object, Object, create_hero_section_dto_1.CreateHeroSectionDto]),
     __metadata("design:returntype", void 0)
 ], HeroSectionController.prototype, "create", null);
 exports.HeroSectionController = HeroSectionController = __decorate([

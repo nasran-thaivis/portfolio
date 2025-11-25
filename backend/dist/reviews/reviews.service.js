@@ -18,9 +18,16 @@ let ReviewsService = class ReviewsService {
         this.prisma = prisma;
         this.uploadService = uploadService;
     }
-    async create(createReviewDto) {
+    async create(username, createReviewDto) {
+        const user = await this.prisma.user.findUnique({
+            where: { username: username },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException(`User with username "${username}" not found`);
+        }
         const data = {
             ...createReviewDto,
+            userId: user.id,
             rating: Number(createReviewDto.rating),
             avatarUrl: createReviewDto.avatarUrl
                 ? this.uploadService.normalizeImageUrl(createReviewDto.avatarUrl)
@@ -32,8 +39,24 @@ let ReviewsService = class ReviewsService {
         }
         return review;
     }
-    async findAll() {
+    async findAll(userId, username) {
+        let whereClause = {};
+        if (userId) {
+            whereClause.userId = userId;
+        }
+        else if (username) {
+            const user = await this.prisma.user.findUnique({
+                where: { username },
+            });
+            if (user) {
+                whereClause.userId = user.id;
+            }
+            else {
+                return [];
+            }
+        }
         const reviews = await this.prisma.review.findMany({
+            where: whereClause,
             orderBy: { createdAt: 'desc' },
         });
         return reviews.map((review) => {
@@ -43,7 +66,11 @@ let ReviewsService = class ReviewsService {
             return review;
         });
     }
-    remove(id) {
+    async remove(userId, id) {
+        const review = await this.prisma.review.findUnique({ where: { id } });
+        if (!review || review.userId !== userId) {
+            throw new Error('Review not found or access denied');
+        }
         return this.prisma.review.delete({
             where: { id },
         });

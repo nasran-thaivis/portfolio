@@ -1,35 +1,89 @@
 "use client";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-
-// === 1. กำหนด URL ของ API Backend ===
-// ตรงนี้ต้องตรงกับ @Controller('hero-section') ของคุณ
-const API_URL = "http://localhost:3005/api/hero-section"; 
+import { getApiUrl } from "../../lib/api";
+import { useAuth } from "../contexts/AuthContext";
+import { usePathname } from "next/navigation";
 
 export default function LogoEditor({ size = 36, showControls = true }) {
   const [logo, setLogo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef(null);
+  const { currentUser } = useAuth();
+  const pathname = usePathname();
+
+  // ดึง username จาก currentUser หรือ pathname
+  const getUsername = () => {
+    if (currentUser?.username) {
+      return currentUser.username;
+    }
+    // ถ้าไม่มี currentUser ลองดึงจาก pathname (เช่น /username/...)
+    const usernameMatch = pathname?.match(/^\/([^\/]+)/);
+    return usernameMatch ? usernameMatch[1] : null;
+  };
 
   // === 2. ฟังก์ชัน: โหลด Logo จาก Database ===
   useEffect(() => {
     const fetchLogo = async () => {
+      const username = getUsername();
+      if (!username) {
+        // ถ้าไม่มี username ไม่ต้อง fetch
+        return;
+      }
+
       try {
-        // แก้ไข: ลบ /1 ออก ให้ยิงไปที่ http://localhost:3001/hero-section โดยตรง
-        const res = await fetch(API_URL); 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.imageUrl) {
-            setLogo(data.imageUrl);
+        // Encode username เพื่อป้องกันปัญหาเมื่อมีอักขระพิเศษ (เช่น @, .)
+        const encodedUsername = encodeURIComponent(username);
+        const apiUrl = getApiUrl(`/api/hero-section?username=${encodedUsername}`);
+        
+        // สร้าง AbortController สำหรับ timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+        
+        const res = await fetch(apiUrl, {
+          signal: controller.signal,
+        }).catch((fetchError) => {
+          // จัดการ network errors (เช่น backend ไม่ได้รัน, CORS, timeout)
+          if (fetchError.name === 'AbortError') {
+            console.warn("Logo fetch timeout - backend may be slow or unavailable");
+          } else if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
+            console.warn("Logo fetch failed - backend may not be running:", fetchError.message);
+          } else {
+            console.warn("Logo fetch error:", fetchError);
           }
+          throw fetchError;
+        }).finally(() => {
+          clearTimeout(timeoutId);
+        });
+        
+        // ตรวจสอบ response status ก่อน parse JSON
+        if (!res.ok) {
+          // ถ้า response ไม่ ok ให้ log error แต่ไม่ throw
+          console.warn(`Failed to fetch logo: ${res.status} ${res.statusText}`);
+          return;
+        }
+
+        const data = await res.json();
+        
+        // ตรวจสอบว่ามี imageUrl และไม่ใช่ค่า default placeholder
+        if (data && data.imageUrl && data.imageUrl !== 'https://placehold.co/1920x1080') {
+          setLogo(data.imageUrl);
         }
       } catch (error) {
-        console.error("Failed to fetch logo:", error);
+        // จัดการทุกประเภทของ errors (network, timeout, JSON parse, etc.)
+        if (error.name === 'AbortError') {
+          console.warn("Logo fetch timeout");
+        } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          console.warn("Logo fetch failed - backend may not be running");
+        } else {
+          console.error("Failed to fetch logo:", error);
+        }
+        // ไม่ต้อง set error state เพราะเป็น optional feature
       }
     };
 
     fetchLogo();
-  }, []);
+  }, [currentUser, pathname]);
 
   // === 3. ฟังก์ชัน: อัปโหลดรูปและบันทึก (S3 Upload) ===
   const handleFile = async (e) => {
@@ -53,7 +107,7 @@ export default function LogoEditor({ size = 36, showControls = true }) {
       const formDataToUpload = new FormData();
       formDataToUpload.append('file', file);
 
-      const uploadRes = await fetch('http://localhost:3005/api/upload/image', {
+      const uploadRes = await fetch(getApiUrl('/api/upload/image'), {
         method: 'POST',
         body: formDataToUpload,
       });
@@ -65,10 +119,20 @@ export default function LogoEditor({ size = 36, showControls = true }) {
       const { url } = await uploadRes.json();
 
       // จากนั้นบันทึก URL ลง Database
-      const res = await fetch(API_URL, {
+      const username = getUsername();
+      if (!username || !currentUser) {
+        throw new Error("Authentication required");
+      }
+      
+      // Encode username เพื่อป้องกันปัญหาเมื่อมีอักขระพิเศษ
+      const encodedUsername = encodeURIComponent(username);
+      const apiUrl = getApiUrl(`/api/hero-section?username=${encodedUsername}`);
+      const res = await fetch(apiUrl, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          "x-username": username,
+          "x-user-id": currentUser.id || "",
         },
         body: JSON.stringify({
           imageUrl: url
@@ -94,12 +158,24 @@ export default function LogoEditor({ size = 36, showControls = true }) {
   const clearLogo = async () => {
     if (!confirm("Are you sure you want to remove the logo?")) return;
     
+    const username = getUsername();
+    if (!username || !currentUser) {
+      alert("Authentication required");
+      return;
+    }
+    
     setIsLoading(true);
     try {
-       // แก้ไข: ลบ /1 ออก
-       const res = await fetch(API_URL, {
+       // Encode username เพื่อป้องกันปัญหาเมื่อมีอักขระพิเศษ
+       const encodedUsername = encodeURIComponent(username);
+       const apiUrl = getApiUrl(`/api/hero-section?username=${encodedUsername}`);
+       const res = await fetch(apiUrl, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              "x-username": username,
+              "x-user-id": currentUser.id || "",
+            },
             body: JSON.stringify({ imageUrl: null }), 
         });
 

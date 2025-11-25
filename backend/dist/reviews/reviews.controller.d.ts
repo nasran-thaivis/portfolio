@@ -1,30 +1,32 @@
 import { ReviewsService } from './reviews.service';
-import { CreateReviewDto } from './dto/create-review.dto';
 export declare class ReviewsController {
     private readonly reviewsService;
     constructor(reviewsService: ReviewsService);
-    create(createReviewDto: CreateReviewDto): Promise<{
+    create(body: any): Promise<{
         id: string;
         name: string;
+        createdAt: Date;
+        userId: string;
         rating: number;
         comment: string;
         avatarUrl: string | null;
-        createdAt: Date;
     }>;
-    findAll(): Promise<{
+    findAll(req: any): Promise<{
         id: string;
         name: string;
+        createdAt: Date;
+        userId: string;
         rating: number;
         comment: string;
         avatarUrl: string | null;
-        createdAt: Date;
     }[]>;
-    remove(id: string): import(".prisma/client").Prisma.Prisma__ReviewClient<{
+    remove(user: any, id: string): Promise<{
         id: string;
         name: string;
+        createdAt: Date;
+        userId: string;
         rating: number;
         comment: string;
         avatarUrl: string | null;
-        createdAt: Date;
-    }, never, import("@prisma/client/runtime/library").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
+    }>;
 }

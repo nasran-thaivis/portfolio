@@ -1,9 +1,11 @@
 import { ContactService } from './contact.service';
 import { CreateContactDto, UpdateContactStatusDto } from './dto/contact.dto';
+import { PrismaService } from '../prisma/prisma.service';
 export declare class ContactController {
     private readonly contactService;
-    constructor(contactService: ContactService);
-    findAll(): Promise<{
+    private readonly prisma;
+    constructor(contactService: ContactService, prisma: PrismaService);
+    findAll(req: any): Promise<{
         id: string;
         email: string;
         name: string;
@@ -11,6 +13,7 @@ export declare class ContactController {
         updatedAt: Date;
         message: string;
         status: string;
+        userId: string;
     }[]>;
     findOne(id: string): Promise<{
         id: string;
@@ -20,8 +23,9 @@ export declare class ContactController {
         updatedAt: Date;
         message: string;
         status: string;
+        userId: string;
     }>;
-    create(createContactDto: CreateContactDto): Promise<{
+    create(createContactDto: CreateContactDto, req: any): Promise<{
         id: string;
         email: string;
         name: string;
@@ -29,6 +33,7 @@ export declare class ContactController {
         updatedAt: Date;
         message: string;
         status: string;
+        userId: string;
     }>;
     updateStatus(id: string, updateStatusDto: UpdateContactStatusDto): Promise<{
         id: string;
@@ -38,6 +43,7 @@ export declare class ContactController {
         updatedAt: Date;
         message: string;
         status: string;
+        userId: string;
     }>;
     remove(id: string): Promise<{
         message: string;

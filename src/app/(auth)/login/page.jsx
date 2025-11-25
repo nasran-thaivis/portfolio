@@ -32,8 +32,14 @@ export default function LoginPage() {
       const result = await login(email, password);
 
       if (result.success) {
-        // Redirect ไปหน้า Home หลัง login สำเร็จ
-        router.push("/");
+        // Redirect ไปหน้า Admin ของ user หลัง login สำเร็จ
+        // ใช้ window.location.href เพื่อ force reload และโหลด auth state ใหม่
+        const username = result.user?.username;
+        if (username) {
+          window.location.href = `/${username}/admin`;
+        } else {
+          window.location.href = "/";
+        }
       } else {
         setError(result.message);
         setLoading(false);
@@ -107,6 +113,18 @@ export default function LoginPage() {
             </button>
           </form>
 
+          {/* Register Link */}
+          <div className="mt-6 text-center">
+            <p className="text-gray-600 text-sm">
+              Don't have an account?{" "}
+              <Link
+                href="/register"
+                className="text-[var(--color-primary)] hover:underline font-semibold"
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

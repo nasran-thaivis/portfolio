@@ -12,6 +12,7 @@ export class UsersService {
         id: true,
         email: true,
         name: true,
+        username: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -25,6 +26,7 @@ export class UsersService {
         id: true,
         email: true,
         name: true,
+        username: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -43,14 +45,58 @@ export class UsersService {
     });
   }
 
+  async findByUsername(username: string) {
+    return this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async checkUsernameAvailability(username: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+    });
+    return !user; // Return true if username is available
+  }
+
+  async validateUser(email: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || user.password !== password) {
+      return null;
+    }
+
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
   async create(createUserDto: CreateUserDto) {
     // Check if email already exists
-    const existingUser = await this.prisma.user.findUnique({
+    const existingEmail = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
 
-    if (existingUser) {
+    if (existingEmail) {
       throw new ConflictException('Email already exists');
+    }
+
+    // Check if username already exists
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username: createUserDto.username },
+    });
+
+    if (existingUsername) {
+      throw new ConflictException('Username already exists');
     }
 
     // ⚠️ In production, hash password with bcrypt
@@ -60,6 +106,7 @@ export class UsersService {
         id: true,
         email: true,
         name: true,
+        username: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -79,6 +126,7 @@ export class UsersService {
         id: true,
         email: true,
         name: true,
+        username: true,
         createdAt: true,
         updatedAt: true,
       },

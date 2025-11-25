@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { getSignedImageUrl } from "../../../lib/imageUtils";
+import { useParams } from "next/navigation";
+import { getSignedImageUrl, normalizeImageUrl } from "../../../lib/imageUtils";
+// import { getApiUrl } from "../../../lib/api"; // ไม่ได้ใช้ในนี้ ลบออกหรือ comment ไว้ก็ได้ครับ
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function HomeEditor() {
+  const params = useParams();
+  const { currentUser } = useAuth();
+  
+  // ✅ แก้ไขแล้ว: ลบ ( as string ) ออก
+  const currentUsername = params?.username || currentUser?.username || '';
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -16,24 +25,38 @@ export default function HomeEditor() {
   // 1. ดึงข้อมูลปัจจุบันมาแสดงในฟอร์ม
   useEffect(() => {
     const fetchData = async () => {
+      // ถ้าไม่มี username ให้จบการทำงาน
+      if (!currentUsername) {
+        setIsLoading(false);
+        return;
+      }
+      
       try {
-        const res = await fetch("http://localhost:3005/api/hero-section");
+        // Use Next.js API route with username query parameter
+        const res = await fetch(`/api/hero-section?username=${encodeURIComponent(currentUsername)}`);
+        
+        if (!res.ok) {
+          console.warn("[HomeEditor] Failed to fetch hero section, using empty form");
+          setIsLoading(false);
+          return;
+        }
+        
         const data = await res.json();
         if (data) {
           setFormData({
-            title: data.title,
-            description: data.description,
-            imageUrl: data.imageUrl ? getSignedImageUrl(data.imageUrl) : data.imageUrl,
+            title: data.title || "",
+            description: data.description || "",
+            imageUrl: data.imageUrl ? getSignedImageUrl(data.imageUrl) : "",
           });
         }
       } catch (error) {
-        console.error("Failed to load data", error);
+        console.error("[HomeEditor] Failed to load data", error);
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [currentUsername]);
 
   // 2. อัปโหลดรูปภาพจากเครื่อง (S3 Upload)
   const handleImageUpload = async (e) => {
@@ -55,12 +78,16 @@ export default function HomeEditor() {
     setIsUploading(true);
 
     try {
-      // อัปโหลดไป S3
       const formDataToUpload = new FormData();
       formDataToUpload.append('file', file);
 
-      const uploadRes = await fetch('http://localhost:3005/api/upload/image', {
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      const uploadRes = await fetch('/api/upload/image', {
         method: 'POST',
+        headers,
         body: formDataToUpload,
       });
 
@@ -89,21 +116,41 @@ export default function HomeEditor() {
   // 4. บันทึกข้อมูล (PATCH)
   const handleSave = async (e) => {
     e.preventDefault();
+    
+    if (!currentUsername) {
+      alert("❌ ไม่พบ username กรุณาตรวจสอบ URL");
+      return;
+    }
+    
     try {
-      const res = await fetch("http://localhost:3005/api/hero-section", {
-        method: "PATCH", // ใช้ PATCH เพื่อแก้ไขข้อมูล
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      // Normalize imageUrl to path before saving
+      const dataToSave = {
+        ...formData,
+        imageUrl: formData.imageUrl ? normalizeImageUrl(formData.imageUrl) : formData.imageUrl,
+        username: currentUsername, // ส่งไปบอกหลังบ้านว่าเป็นของใคร
+      };
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      const res = await fetch("/api/hero-section", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(dataToSave),
       });
 
       if (res.ok) {
+        // const data = await res.json(); // ไม่จำเป็นต้องใช้ data ก็ได้
         alert("✅ บันทึกข้อมูลเรียบร้อย! (ไปดูหน้าแรกได้เลย)");
       } else {
-        alert("❌ บันทึกไม่สำเร็จ");
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.message || "บันทึกไม่สำเร็จ";
+        alert(`❌ ${errorMessage}`);
       }
     } catch (error) {
-      console.error(error);
-      alert("Error connecting to server");
+      console.error("[HomeEditor] Save error:", error);
+      alert("❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่า Database กำลังทำงานอยู่");
     }
   };
 

@@ -16,8 +16,24 @@ let ContactService = class ContactService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async findAll() {
+    async findAll(userId, username) {
+        let whereClause = {};
+        if (userId) {
+            whereClause.userId = userId;
+        }
+        else if (username) {
+            const user = await this.prisma.user.findUnique({
+                where: { username },
+            });
+            if (user) {
+                whereClause.userId = user.id;
+            }
+            else {
+                return [];
+            }
+        }
         return this.prisma.contactRequest.findMany({
+            where: whereClause,
             orderBy: {
                 createdAt: 'desc',
             },
@@ -28,9 +44,12 @@ let ContactService = class ContactService {
             where: { id },
         });
     }
-    async create(createContactDto) {
+    async create(createContactDto, userId) {
         return this.prisma.contactRequest.create({
-            data: createContactDto,
+            data: {
+                ...createContactDto,
+                userId: userId || null,
+            },
         });
     }
     async updateStatus(id, updateStatusDto) {

@@ -35,6 +35,40 @@ let UsersController = class UsersController {
     remove(id) {
         return this.usersService.remove(id);
     }
+    async findByUsername(username) {
+        const user = await this.usersService.findByUsername(username);
+        if (!user) {
+            throw new common_1.NotFoundException(`User with username '${username}' not found`);
+        }
+        return { success: true, user };
+    }
+    async checkUsername(username) {
+        const isAvailable = await this.usersService.checkUsernameAvailability(username);
+        return {
+            success: true,
+            available: isAvailable,
+            message: isAvailable ? 'Username is available' : 'Username already taken'
+        };
+    }
+    async login(loginUserDto) {
+        const user = await this.usersService.validateUser(loginUserDto.email, loginUserDto.password);
+        if (!user) {
+            return { success: false, message: 'Invalid email or password' };
+        }
+        return { success: true, user, message: 'Login successful' };
+    }
+    async register(createUserDto) {
+        try {
+            const user = await this.usersService.create(createUserDto);
+            return { success: true, user, message: 'Registration successful' };
+        }
+        catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Registration failed'
+            };
+        }
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -74,6 +108,36 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Get)('username/:username'),
+    __param(0, (0, common_1.Param)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "findByUsername", null);
+__decorate([
+    (0, common_1.Get)('check-username/:username'),
+    __param(0, (0, common_1.Param)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "checkUsername", null);
+__decorate([
+    (0, common_1.Post)('login'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [user_dto_1.LoginUserDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('register'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [user_dto_1.CreateUserDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "register", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     __metadata("design:paramtypes", [users_service_1.UsersService])

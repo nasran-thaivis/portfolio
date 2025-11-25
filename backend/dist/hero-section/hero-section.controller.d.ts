@@ -4,21 +4,21 @@ import { UpdateHeroSectionDto } from './dto/update-hero-section.dto';
 export declare class HeroSectionController {
     private readonly heroSectionService;
     constructor(heroSectionService: HeroSectionService);
-    findOne(): Promise<any>;
-    update(updateHeroSectionDto: UpdateHeroSectionDto): Promise<{
-        id: number;
+    findOne(req: any): Promise<any>;
+    update(user: any, req: any, updateHeroSectionDto: UpdateHeroSectionDto): Promise<{
+        id: string;
+        updatedAt: Date;
+        userId: string;
         title: string;
         description: string | null;
-        logoUrl: string | null;
         imageUrl: string | null;
-        updatedAt: Date;
     }>;
-    create(createHeroSectionDto: CreateHeroSectionDto): Promise<{
-        id: number;
+    create(user: any, req: any, createHeroSectionDto: CreateHeroSectionDto): Promise<{
+        id: string;
+        updatedAt: Date;
+        userId: string;
         title: string;
         description: string | null;
-        logoUrl: string | null;
         imageUrl: string | null;
-        updatedAt: Date;
     }>;
 }

@@ -18,9 +18,10 @@ let ProjectsService = class ProjectsService {
         this.prisma = prisma;
         this.uploadService = uploadService;
     }
-    async create(createProjectDto) {
+    async create(userId, createProjectDto) {
         const normalizedData = {
             ...createProjectDto,
+            userId,
             imageUrl: createProjectDto.imageUrl
                 ? this.uploadService.normalizeImageUrl(createProjectDto.imageUrl)
                 : createProjectDto.imageUrl,
@@ -33,8 +34,24 @@ let ProjectsService = class ProjectsService {
         }
         return project;
     }
-    async findAll() {
+    async findAll(userId, username) {
+        let whereClause = {};
+        if (userId) {
+            whereClause.userId = userId;
+        }
+        else if (username) {
+            const user = await this.prisma.user.findUnique({
+                where: { username },
+            });
+            if (user) {
+                whereClause.userId = user.id;
+            }
+            else {
+                return [];
+            }
+        }
         const projects = await this.prisma.project.findMany({
+            where: whereClause,
             orderBy: { createdAt: 'desc' },
         });
         return projects.map((project) => {
@@ -51,7 +68,11 @@ let ProjectsService = class ProjectsService {
         }
         return project;
     }
-    async update(id, updateProjectDto) {
+    async update(userId, id, updateProjectDto) {
+        const existingProject = await this.prisma.project.findUnique({ where: { id } });
+        if (!existingProject || existingProject.userId !== userId) {
+            throw new Error('Project not found or access denied');
+        }
         const normalizedData = {
             ...updateProjectDto,
             imageUrl: updateProjectDto.imageUrl !== undefined
@@ -69,7 +90,11 @@ let ProjectsService = class ProjectsService {
         }
         return project;
     }
-    remove(id) {
+    async remove(userId, id) {
+        const project = await this.prisma.project.findUnique({ where: { id } });
+        if (!project || project.userId !== userId) {
+            throw new Error('Project not found or access denied');
+        }
         return this.prisma.project.delete({ where: { id } });
     }
 };

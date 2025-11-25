@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getApiUrl } from "../../lib/api";
 
 export default function ContactForm() {
   const [name, setName] = useState("");
@@ -13,8 +14,8 @@ export default function ContactForm() {
     setStatus("loading");
 
     try {
-      // 🚀 ยิงไปที่ Backend NestJS (Port 3005)
-      const res = await fetch("http://localhost:3005/api/contact", {
+      // 🚀 ยิงไปที่ Backend NestJS
+      const res = await fetch(getApiUrl("/api/contact"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message }),

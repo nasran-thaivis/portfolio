@@ -34,23 +34,25 @@ I'm passionate about creating modern web applications and providing excellent IT
   skills: "Next.js, React, Tailwind CSS, WordPress, LAN/Hardware, Microsoft Office",
 };
 
+// === Helper function: โหลดข้อมูลจาก localStorage ===
+function loadDataFromStorage() {
+  try {
+    if (typeof window === "undefined") return DEFAULT_DATA;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.warn("AboutClient: failed to load data", error);
+  }
+  return DEFAULT_DATA;
+}
+
 // === Component หน้า About (Client-side) ===
 // อ่านข้อมูลจาก Admin Dashboard ใน localStorage
 export default function AboutClient() {
-  // State: เก็บข้อมูลหน้า About
-  const [data, setData] = useState(DEFAULT_DATA);
-
-  // === Effect: โหลดข้อมูลจาก localStorage ===
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setData(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.warn("AboutClient: failed to load data", error);
-    }
-  }, []);
+  // State: เก็บข้อมูลหน้า About (ใช้ lazy initialization เพื่อโหลดจาก localStorage)
+  const [data, setData] = useState(loadDataFromStorage);
 
   return (
     <Container title={data.title}>

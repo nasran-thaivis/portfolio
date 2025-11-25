@@ -26,6 +26,7 @@ export class UploadController {
       fileFilter: (req, file, cb) => {
         // ตรวจสอบว่าเป็นไฟล์รูปภาพเท่านั้น
         if (!file.mimetype.startsWith('image/')) {
+          console.error(`[UploadController] Invalid file type: ${file.mimetype}`);
           return cb(
             new BadRequestException('Only image files are allowed'),
             false,
@@ -36,17 +37,29 @@ export class UploadController {
     }),
   )
   async uploadImage(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
+    try {
+      console.log('[UploadController] Image upload request received');
+      
+      if (!file) {
+        console.error('[UploadController] No file uploaded');
+        throw new BadRequestException('No file uploaded');
+      }
+
+      console.log(`[UploadController] Uploading file: ${file.originalname}, size: ${file.size} bytes, type: ${file.mimetype}`);
+
+      // อัปโหลดไฟล์ไปยัง S3
+      const url = await this.uploadService.uploadFile(file, 'images');
+
+      console.log(`[UploadController] File uploaded successfully: ${url}`);
+
+      return {
+        url,
+        message: 'File uploaded successfully',
+      };
+    } catch (error: any) {
+      console.error('[UploadController] Error uploading image:', error?.message || error);
+      throw error;
     }
-
-    // อัปโหลดไฟล์ไปยัง S3
-    const url = await this.uploadService.uploadFile(file, 'images');
-
-    return {
-      url,
-      message: 'File uploaded successfully',
-    };
   }
 
   @Get('signed-url')

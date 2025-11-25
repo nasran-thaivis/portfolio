@@ -3,19 +3,21 @@ import { CreateAboutSectionDto } from './dto/create-about-section.dto';
 export declare class AboutSectionController {
     private readonly aboutSectionService;
     constructor(aboutSectionService: AboutSectionService);
-    findOne(): Promise<any>;
-    update(createAboutSectionDto: CreateAboutSectionDto): Promise<{
-        id: number;
+    findOne(req: any): Promise<any>;
+    update(user: any, req: any, createAboutSectionDto: CreateAboutSectionDto): Promise<{
+        id: string;
+        updatedAt: Date;
+        userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
-        updatedAt: Date;
     }>;
-    create(createAboutSectionDto: CreateAboutSectionDto): Promise<{
-        id: number;
+    create(user: any, req: any, createAboutSectionDto: CreateAboutSectionDto): Promise<{
+        id: string;
+        updatedAt: Date;
+        userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
-        updatedAt: Date;
     }>;
 }
