@@ -82,7 +82,13 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
   // ดึงข้อมูล user
   const user = await getUserByUsername(username);
   
-  // ดึงข้อมูล Hero Section (works even if user lookup failed)
+  // ถ้าไม่พบ user ให้แสดง 404
+  if (!user) {
+    console.warn(`[UserProfile] User ${username} not found, showing 404`);
+    notFound();
+  }
+  
+  // ดึงข้อมูล Hero Section
   const heroData = await getHeroData(username);
 
   // ค่าเริ่มต้น - use username if user not found
@@ -92,13 +98,6 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
     description: "Welcome to my portfolio website.",
     imageUrl: "https://placehold.co/1920x1080",
   };
-
-  // Only show 404 if we really can't render anything
-  // For now, allow page to render with default data
-  if (!user) {
-    // Still render page but with limited functionality
-    console.warn(`[UserProfile] User ${username} not found, rendering with default data`);
-  }
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">

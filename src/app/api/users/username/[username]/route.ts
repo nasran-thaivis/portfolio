@@ -46,31 +46,69 @@ export async function GET(
         );
       }
 
-      // Other errors from backend
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Backend error: ${response.status}`);
-    } catch (fetchError: any) {
-      // Network error or timeout - backend unavailable
-      if (
-        fetchError.name === 'AbortError' ||
-        (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))
-      ) {
-        console.warn(`[API Proxy] Backend unavailable for /api/users/username/${username}, returning null`);
-        
-        // Return null user structure to allow pages to render
+      // Try to parse error message to check if it's a "not found" error
+      let errorData: any = {};
+      try {
+        const text = await response.text();
+        if (text) {
+          try {
+            errorData = JSON.parse(text);
+          } catch {
+            errorData = { message: text };
+          }
+        }
+      } catch {
+        // If we can't parse, continue with empty object
+      }
+
+      // Check if error message indicates user not found
+      const errorMessage = errorData?.message || errorData?.error || '';
+      const isNotFoundError = 
+        errorMessage.toLowerCase().includes('not found') ||
+        errorMessage.toLowerCase().includes('does not exist') ||
+        response.status === 404;
+
+      if (isNotFoundError) {
         return NextResponse.json(
           { success: false, message: `User with username '${username}' not found` },
           { status: 404 }
         );
       }
 
-      throw fetchError;
+      // Other errors from backend - log but still treat as not found for user lookup
+      console.warn(`[API Proxy] Backend returned ${response.status} for username ${username}:`, errorMessage);
+      return NextResponse.json(
+        { success: false, message: `User with username '${username}' not found` },
+        { status: 404 }
+      );
+    } catch (fetchError: any) {
+      // Network error or timeout - backend unavailable
+      if (
+        fetchError.name === 'AbortError' ||
+        (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))
+      ) {
+        console.warn(`[API Proxy] Backend unavailable for /api/users/username/${username}, returning 404`);
+        
+        // Return 404 when backend is unavailable (treat as user not found)
+        return NextResponse.json(
+          { success: false, message: `User with username '${username}' not found` },
+          { status: 404 }
+        );
+      }
+
+      // For any other fetch errors, treat as user not found
+      console.warn(`[API Proxy] Fetch error for username ${username}:`, fetchError.message);
+      return NextResponse.json(
+        { success: false, message: `User with username '${username}' not found` },
+        { status: 404 }
+      );
     }
   } catch (error: any) {
+    // Catch-all error handler - treat as user not found instead of 500
     console.error(`[API Proxy] Error in GET /api/users/username/[username]:`, error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 }
+      { success: false, message: `User with username '${username}' not found` },
+      { status: 404 }
     );
   }
 }

@@ -55,17 +55,17 @@ async function getUserByUsername(username) {
 export default async function ContactPage({ params }) {
   const { username } = await params;
 
-  // ตรวจสอบว่า user มีอยู่จริง (แต่ยังแสดงหน้าได้แม้ไม่พบ user)
+  // ตรวจสอบว่า user มีอยู่จริง
   const user = await getUserByUsername(username);
   
-  // Use default email if user not found
-  const displayEmail = user?.email || `${username}@example.com`;
-  
-  // Only show 404 if we really can't render anything
-  // For now, allow page to render with default/placeholder email
+  // ถ้าไม่พบ user ให้แสดง 404
   if (!user) {
-    console.warn(`[ContactPage] User ${username} not found, rendering with default email`);
+    console.warn(`[ContactPage] User ${username} not found, showing 404`);
+    notFound();
   }
+  
+  // Use user email
+  const displayEmail = user?.email || `${username}@example.com`;
 
   return (
     <Container title="Contact">

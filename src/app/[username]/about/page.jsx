@@ -79,8 +79,14 @@ async function getAboutData(username) {
 export default async function AboutPage({ params }) {
   const { username } = await params;
 
-  // ตรวจสอบว่า user มีอยู่จริง (แต่ยังแสดงหน้าได้แม้ไม่พบ user)
+  // ตรวจสอบว่า user มีอยู่จริง
   const user = await getUserByUsername(username);
+
+  // ถ้าไม่พบ user ให้แสดง 404
+  if (!user) {
+    console.warn(`[AboutPage] User ${username} not found, showing 404`);
+    notFound();
+  }
 
   // ดึงข้อมูล
   const data = await getAboutData(username);
@@ -91,12 +97,6 @@ export default async function AboutPage({ params }) {
     description: "Loading...",
     imageUrl: "https://placehold.co/600x400",
   };
-
-  // Only show 404 if we really can't render anything
-  // For now, allow page to render with default data
-  if (!user) {
-    console.warn(`[AboutPage] User ${username} not found, rendering with default data`);
-  }
 
   return (
     <Container title="About">

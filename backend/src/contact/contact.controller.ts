@@ -39,9 +39,7 @@ export class ContactController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createContactDto: CreateContactDto, @Req() req: any) {
-    if (!createContactDto.name || !createContactDto.email || !createContactDto.message) {
-      throw new BadRequestException('Missing required fields');
-    }
+    
     // Get username from query (for public contact forms)
     const username = req.query.userId as string; // Note: query param is named userId but contains username
     let userId: string | undefined;

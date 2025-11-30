@@ -7,6 +7,7 @@ import ContactEditor from "./components/ContactEditor";
 import PortfolioEditor from "./components/PortfolioEditor";
 import ReviewEditor from "./components/ReviewEditor";
 import ThemeEditor from "./components/ThemeEditor";
+import ContactSubmissionsViewer from "./components/ContactSubmissionsViewer";
 
 // === Component หลักของ Admin Dashboard ===
 export default function AdminClient() {
@@ -20,6 +21,7 @@ export default function AdminClient() {
     { id: "portfolio", label: "Portfolio", icon: "💼" },
     { id: "review", label: "Review", icon: "⭐" },
     { id: "contact", label: "Contact", icon: "📧" },
+    { id: "messages", label: "Messages", icon: "📬" },
     { id: "theme", label: "Theme", icon: "🎨" },
   ];
 
@@ -66,6 +68,9 @@ export default function AdminClient() {
 
           {/* === Contact Tab === */}
           {activeTab === "contact" && <ContactEditor />}
+
+          {/* === Messages Tab === */}
+          {activeTab === "messages" && <ContactSubmissionsViewer />}
 
           {/* === Theme Tab === */}
           {activeTab === "theme" && <ThemeEditor />}

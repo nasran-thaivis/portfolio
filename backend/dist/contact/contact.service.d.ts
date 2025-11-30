@@ -4,9 +4,9 @@ export declare class ContactService {
     private prisma;
     constructor(prisma: PrismaService);
     findAll(userId?: string, username?: string): Promise<{
-        id: string;
         email: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         message: string;
@@ -14,9 +14,9 @@ export declare class ContactService {
         userId: string;
     }[]>;
     findOne(id: string): Promise<{
-        id: string;
         email: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         message: string;
@@ -24,9 +24,9 @@ export declare class ContactService {
         userId: string;
     }>;
     create(createContactDto: CreateContactDto, userId?: string): Promise<{
-        id: string;
         email: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         message: string;
@@ -34,9 +34,9 @@ export declare class ContactService {
         userId: string;
     }>;
     updateStatus(id: string, updateStatusDto: UpdateContactStatusDto): Promise<{
-        id: string;
         email: string;
         name: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
         message: string;

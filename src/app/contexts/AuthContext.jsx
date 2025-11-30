@@ -145,13 +145,22 @@ export function AuthProvider({ children }) {
       // ตรวจสอบ response status ก่อน parse JSON
       if (!response.ok) {
         let errorMessage = "Registration failed";
+        let errors = {};
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
+          // ถ้ามี errors object จาก backend (validation errors) ให้ดึงมาใช้
+          if (errorData.errors && typeof errorData.errors === 'object') {
+            errors = errorData.errors;
+          }
         } catch (e) {
           errorMessage = `Registration failed: ${response.status} ${response.statusText}`;
         }
         console.error("Registration API error:", errorMessage);
+        // ถ้ามี errors object ให้ส่งกลับมาในรูปแบบ structured
+        if (Object.keys(errors).length > 0) {
+          return { success: false, errors, message: errorMessage };
+        }
         return { success: false, message: errorMessage };
       }
 
@@ -165,6 +174,10 @@ export function AuthProvider({ children }) {
 
       if (!data.success) {
         console.error("Registration failed:", data.message);
+        // ถ้ามี errors object ให้ส่งกลับมาในรูปแบบ structured
+        if (data.errors && typeof data.errors === 'object' && Object.keys(data.errors).length > 0) {
+          return { success: false, errors: data.errors, message: data.message || "Registration failed" };
+        }
         return { success: false, message: data.message || "Registration failed" };
       }
 
@@ -245,11 +258,20 @@ export function AuthProvider({ children }) {
       // ตรวจสอบ response status ก่อน parse JSON
       if (!response.ok) {
         let errorMessage = "Login failed";
+        let errors = {};
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
+          // ถ้ามี errors object จาก backend (validation errors) ให้ดึงมาใช้
+          if (errorData.errors && typeof errorData.errors === 'object') {
+            errors = errorData.errors;
+          }
         } catch (e) {
           errorMessage = `Login failed: ${response.status} ${response.statusText}`;
+        }
+        // ถ้ามี errors object ให้ส่งกลับมาในรูปแบบ structured
+        if (Object.keys(errors).length > 0) {
+          return { success: false, errors, message: errorMessage };
         }
         return { success: false, message: errorMessage };
       }
@@ -263,6 +285,10 @@ export function AuthProvider({ children }) {
       }
 
       if (!data.success) {
+        // ถ้ามี errors object ให้ส่งกลับมาในรูปแบบ structured
+        if (data.errors && typeof data.errors === 'object' && Object.keys(data.errors).length > 0) {
+          return { success: false, errors: data.errors, message: data.message || "Login failed" };
+        }
         return { success: false, message: data.message || "Login failed" };
       }
 

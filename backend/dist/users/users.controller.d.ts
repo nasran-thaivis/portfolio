@@ -4,34 +4,34 @@ export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
     findAll(): Promise<{
-        id: string;
         email: string;
         name: string;
         username: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
     }[]>;
     findOne(id: string): Promise<{
-        id: string;
         email: string;
         name: string;
         username: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
     create(createUserDto: CreateUserDto): Promise<{
-        id: string;
         email: string;
         name: string;
         username: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
     update(id: string, updateUserDto: UpdateUserDto): Promise<{
-        id: string;
         email: string;
         name: string;
         username: string;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -41,10 +41,10 @@ export declare class UsersController {
     findByUsername(username: string): Promise<{
         success: boolean;
         user: {
-            id: string;
             email: string;
             name: string;
             username: string;
+            id: string;
             createdAt: Date;
             updatedAt: Date;
         };
@@ -61,10 +61,10 @@ export declare class UsersController {
     } | {
         success: boolean;
         user: {
-            id: string;
             email: string;
             name: string;
             username: string;
+            id: string;
             createdAt: Date;
             updatedAt: Date;
         };
@@ -73,10 +73,10 @@ export declare class UsersController {
     register(createUserDto: CreateUserDto): Promise<{
         success: boolean;
         user: {
-            id: string;
             email: string;
             name: string;
             username: string;
+            id: string;
             createdAt: Date;
             updatedAt: Date;
         };

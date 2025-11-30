@@ -31,9 +31,6 @@ let ContactController = class ContactController {
         return this.contactService.findOne(id);
     }
     async create(createContactDto, req) {
-        if (!createContactDto.name || !createContactDto.email || !createContactDto.message) {
-            throw new common_1.BadRequestException('Missing required fields');
-        }
         const username = req.query.userId;
         let userId;
         if (username) {

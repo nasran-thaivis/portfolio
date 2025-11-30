@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
 const express_1 = require("express");
+const common_1 = require("@nestjs/common");
+const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     app.use((0, express_1.json)({ limit: '10mb' }));
@@ -23,6 +25,15 @@ async function bootstrap() {
         credentials: true,
     });
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(new common_1.ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: false,
+        transform: true,
+        transformOptions: {
+            enableImplicitConversion: true,
+        },
+    }));
+    app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
     const port = process.env.PORT || 3005;
     await app.listen(port);
     console.log(`🚀 Backend is running on: http://localhost:${port}/api`);

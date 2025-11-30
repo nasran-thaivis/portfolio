@@ -78,16 +78,16 @@ function renderStars(rating) {
 export default async function ReviewPage({ params }) {
   const { username } = await params;
 
-  // ตรวจสอบว่า user มีอยู่จริง (แต่ยังแสดงหน้าได้แม้ไม่พบ user)
+  // ตรวจสอบว่า user มีอยู่จริง
   const user = await getUserByUsername(username);
   
-  const reviews = await getReviews(username);
-
-  // Only show 404 if we really can't render anything
-  // For now, allow page to render with empty reviews
+  // ถ้าไม่พบ user ให้แสดง 404
   if (!user) {
-    console.warn(`[ReviewPage] User ${username} not found, rendering with default data`);
+    console.warn(`[ReviewPage] User ${username} not found, showing 404`);
+    notFound();
   }
+  
+  const reviews = await getReviews(username);
 
   return (
     <Container title="Client Reviews">

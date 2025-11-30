@@ -6,8 +6,8 @@ export declare class ReviewsService {
     private uploadService;
     constructor(prisma: PrismaService, uploadService: UploadService);
     create(username: string, createReviewDto: CreateReviewDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         userId: string;
         rating: number;
@@ -15,8 +15,8 @@ export declare class ReviewsService {
         avatarUrl: string | null;
     }>;
     findAll(userId?: string, username?: string): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         userId: string;
         rating: number;
@@ -24,8 +24,8 @@ export declare class ReviewsService {
         avatarUrl: string | null;
     }[]>;
     remove(userId: string, id: string): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         userId: string;
         rating: number;

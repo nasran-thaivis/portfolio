@@ -3,8 +3,8 @@ export declare class ReviewsController {
     private readonly reviewsService;
     constructor(reviewsService: ReviewsService);
     create(body: any): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         userId: string;
         rating: number;
@@ -12,8 +12,8 @@ export declare class ReviewsController {
         avatarUrl: string | null;
     }>;
     findAll(req: any): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         userId: string;
         rating: number;
@@ -21,8 +21,8 @@ export declare class ReviewsController {
         avatarUrl: string | null;
     }[]>;
     remove(user: any, id: string): Promise<{
-        id: string;
         name: string;
+        id: string;
         createdAt: Date;
         userId: string;
         rating: number;
