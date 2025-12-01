@@ -7,9 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql" //ฐานข้อมูลที่ใช้งาน (เปลี่ยนเป็น postgresql เพื่อให้ตรงกับ docker-compose.yml)
-  // Note: url is required for prisma migrate deploy even though Prisma 7 recommends prisma.config.ts
-  // prisma migrate deploy reads from schema.prisma, not prisma.config.ts
-  url      = env("DATABASE_URL") //จำเป็นสำหรับ migrate deploy
+  // url ถูกย้ายไปที่ prisma.config.ts แล้ว (Prisma 7 requirement)
 }
 
 model User {
