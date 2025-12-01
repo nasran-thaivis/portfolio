@@ -23,7 +23,7 @@ dotenv.config();
 
 // ตรวจสอบว่า DATABASE_URL ถูกตั้งค่าหรือไม่
 // สำหรับ build-time อาจจะไม่มี DATABASE_URL (จะใช้ dummy URL)
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
+const databaseUrl = process.env.DATABASE_URL || 'mysql://dummy:dummy@localhost:3306/dummy';
 
 // แสดง warning ถ้าไม่มี DATABASE_URL (แต่ไม่ exit เพื่อให้ build ผ่านได้)
 if (!process.env.DATABASE_URL) {
@@ -39,8 +39,8 @@ const getProvider = (url: string): 'postgresql' | 'mysql' => {
   if (url.startsWith('mysql://')) {
     return 'mysql';
   }
-  // default เป็น postgresql
-  return 'postgresql';
+  // default เป็น mysql (สำหรับ TiDB Cloud)
+  return 'mysql';
 };
 
 export default defineConfig({

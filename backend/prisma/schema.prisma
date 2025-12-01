@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" //ฐานข้อมูลที่ใช้งาน (เปลี่ยนเป็น postgresql เพื่อให้ตรงกับ docker-compose.yml)
+  provider = "mysql" //ฐานข้อมูลที่ใช้งาน (เปลี่ยนเป็น mysql สำหรับ TiDB Cloud)
   url      = env("DATABASE_URL") //ใช้ environment variable สำหรับ production
 }
 
