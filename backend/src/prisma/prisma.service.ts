@@ -24,10 +24,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     // Check for localhost in production environment
     const isProduction = process.env.NODE_ENV === 'production';
-    if (isProduction && dbUrl.includes('localhost')) {
-      this.logger.warn('⚠️ WARNING: DATABASE_URL contains localhost in production environment!');
-      this.logger.warn('This usually indicates a misconfiguration. For Render.com deployment,');
-      this.logger.warn('make sure DATABASE_URL is set to your Render PostgreSQL database URL.');
+    if (isProduction && (dbUrl.includes('localhost') || dbUrl.includes('127.0.0.1'))) {
+      this.logger.error('❌ ERROR: DATABASE_URL contains localhost/127.0.0.1 in production environment!');
+      this.logger.error('This will not work in production. For Render.com deployment:');
+      this.logger.error('1. Go to Render Dashboard → Your PostgreSQL Service');
+      this.logger.error('2. Copy the "Internal Database URL"');
+      this.logger.error('3. Set it as DATABASE_URL in your Web Service Environment Variables');
+      throw new Error('DATABASE_URL cannot point to localhost in production environment');
     }
 
     const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@');
