@@ -41,8 +41,9 @@ services:
     command: >
       sh -c "
         echo 'Waiting for database connection...' &&
-        sleep 3 &&
-        echo 'Generating Prisma Client...' &&
+        sleep 5 &&
+        echo 'DATABASE_URL: $DATABASE_URL' &&
+        echo 'Generating Prisma Client with correct DATABASE_URL...' &&
         npx prisma generate &&
         echo 'Running database migrations...' &&
         npx prisma migrate deploy &&

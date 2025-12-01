@@ -5,6 +5,25 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
+  constructor() {
+    super({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
+      },
+    });
+    
+    // Log DATABASE_URL for debugging (without password)
+    const dbUrl = process.env.DATABASE_URL;
+    if (dbUrl) {
+      const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@');
+      this.logger.log(`📝 DATABASE_URL: ${maskedUrl}`);
+    } else {
+      this.logger.error('❌ DATABASE_URL is not set!');
+    }
+  }
+
   async onModuleInit() {
     try {
       const maxRetries = 5;
@@ -19,7 +38,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           retries++;
           if (retries >= maxRetries) {
             this.logger.error(`❌ Failed to connect to database after ${maxRetries} attempts`);
-            this.logger.error(`DATABASE_URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
+            const dbUrl = process.env.DATABASE_URL;
+            if (dbUrl) {
+              const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@');
+              this.logger.error(`DATABASE_URL: ${maskedUrl}`);
+            } else {
+              this.logger.error('DATABASE_URL: Not set');
+            }
             throw error;
           }
           this.logger.warn(`⚠️ Database connection attempt ${retries}/${maxRetries} failed, retrying in 2 seconds...`);

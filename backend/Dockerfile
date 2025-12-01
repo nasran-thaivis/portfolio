@@ -33,7 +33,9 @@ RUN npm ci --omit=dev
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Note: Prisma Client will be generated at runtime with correct DATABASE_URL
+# Do NOT copy .prisma from builder stage to avoid using wrong DATABASE_URL
 
 # Expose port
 EXPOSE 3001
