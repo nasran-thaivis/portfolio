@@ -240,7 +240,7 @@ export async function POST(req: Request) {
     // === 2. ส่งข้อมูลไปที่ NestJS Backend (ถ้ามีการตั้งค่า) ===
     let backendSaved = false;
     let backendError = null;
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     
     try {
       const backendRes = await fetch(`${backendUrl}/api/contact`, {
@@ -329,7 +329,7 @@ export async function GET(request: Request) {
     const username = searchParams.get('username');
     
     // === 1. พยายามอ่านจาก NestJS Backend ก่อน ===
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     let backendRequests = null;
     let backendError = null;
     

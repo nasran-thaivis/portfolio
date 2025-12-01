@@ -1,9 +1,9 @@
 /**
  * API URL Helper
  * Uses environment variable NEXT_PUBLIC_API_URL for production
- * Falls back to localhost:3005 for development
+ * Falls back to localhost:3001 for development
  */
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * Get full API endpoint URL

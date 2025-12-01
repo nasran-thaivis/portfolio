@@ -32,7 +32,7 @@ async function bootstrap() {
     credentials: true,
   });
   
-  // Global prefix (URL จะเป็น localhost:3005/api/...)
+  // Global prefix (URL จะเป็น localhost:3001/api/...)
   app.setGlobalPrefix('api');
   
   // Global ValidationPipe - validates DTOs and uses custom messages from DTO decorators
@@ -50,8 +50,8 @@ async function bootstrap() {
   // Global exception filter to format validation errors
   app.useGlobalFilters(new HttpExceptionFilter());
   
-  // 👇 แก้ตรงนี้เป็น 3005 ตามที่ขอ
-  const port = process.env.PORT || 3005; 
+  // Port configuration - Render will set PORT automatically, fallback to 3001 for local development
+  const port = process.env.PORT || 3001; 
   
   await app.listen(port);
   console.log(`🚀 Backend is running on: http://localhost:${port}/api`);

@@ -10,7 +10,7 @@ export function getSignedImageUrl(urlOrPath) {
   
   // Check if it's a relative path from backend proxy (starts with /api/upload/image)
   if (isPath && urlOrPath.startsWith('/api/upload/image')) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     return `${apiUrl}${urlOrPath}`;
   }
   
@@ -32,7 +32,7 @@ export function getSignedImageUrl(urlOrPath) {
   }
 
   // Create proxy URL
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
   const encodedPath = encodeURIComponent(urlOrPath);
   return `${apiUrl}/api/upload/image?path=${encodedPath}`;
 }
@@ -80,7 +80,7 @@ export function normalizeImageUrl(urlOrPath) {
   try {
     const url = new URL(urlOrPath);
     
-    // Check if it's a proxy URL (e.g., http://localhost:3005/api/upload/image?path=...)
+    // Check if it's a proxy URL (e.g., http://localhost:3001/api/upload/image?path=...)
     if (url.pathname === '/api/upload/image') {
       const pathParam = url.searchParams.get('path');
       if (pathParam) {

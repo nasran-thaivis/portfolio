@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const TIMEOUT_MS = 30000; // 30 seconds for file uploads
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}) {

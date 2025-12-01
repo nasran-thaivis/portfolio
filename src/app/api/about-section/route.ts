@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // ปรับ path ตามของคุณ
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const TIMEOUT_MS = 10000; // 10 seconds
 
 async function fetchWithTimeout(url: string, options: RequestInit = {}) {

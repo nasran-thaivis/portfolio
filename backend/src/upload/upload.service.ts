@@ -263,7 +263,7 @@ export class UploadService {
 
   /**
    * แปลง proxy URL หรือ full URL กลับเป็น path สำหรับเก็บใน database
-   * @param urlOrPath - Proxy URL (เช่น http://localhost:3005/api/upload/image?path=images%2Fxxx.png) หรือ path (เช่น images/xxx.png)
+   * @param urlOrPath - Proxy URL (เช่น http://localhost:3001/api/upload/image?path=images%2Fxxx.png) หรือ path (เช่น images/xxx.png)
    * @returns Path ใน bucket (เช่น images/xxx.png)
    */
   normalizeImageUrl(urlOrPath: string): string {
@@ -291,7 +291,7 @@ export class UploadService {
     try {
       const url = new URL(urlOrPath);
       
-      // ตรวจสอบว่าเป็น proxy URL หรือไม่ (เช่น http://localhost:3005/api/upload/image?path=...)
+      // ตรวจสอบว่าเป็น proxy URL หรือไม่ (เช่น http://localhost:3001/api/upload/image?path=...)
       if (url.pathname === '/api/upload/image') {
         const pathParam = url.searchParams.get('path');
         if (pathParam) {

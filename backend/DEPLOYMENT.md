@@ -201,7 +201,7 @@ postgresql://postgres:password@127.0.0.1:5432/profiledb?schema=public
 2. Render จะกำหนด PORT ให้อัตโนมัติผ่าน environment variable
 3. ตรวจสอบว่าแอปพลิเคชัน listen ที่ port ที่ถูกต้อง:
    ```typescript
-   const port = process.env.PORT || 3005;
+   const port = process.env.PORT || 3001;
    await app.listen(port);
    ```
 

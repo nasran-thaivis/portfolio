@@ -23,7 +23,7 @@ export default function PortfolioEditor() {
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
 
-  // 1. ดึงข้อมูลจาก Backend (Port 3005)
+  // 1. ดึงข้อมูลจาก Backend (Port 3001)
   useEffect(() => {
     fetchProjects();
   }, [currentUser]);
