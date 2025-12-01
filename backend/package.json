@@ -8,14 +8,12 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "sh -c \"if [ -z \\\"$DATABASE_URL\\\" ]; then echo '❌ ERROR: DATABASE_URL is not set!' && exit 1; fi && echo '📝 DATABASE_URL is set' && echo '🔧 Generating Prisma Client...' && npx prisma generate && echo '📦 Running database migrations...' && npx prisma migrate deploy && echo '🚀 Starting application...' && node dist/main\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prisma:seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "type": "commonjs",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.937.0",
