@@ -24,8 +24,10 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
+  let username: string;
   try {
-    const { username } = await params;
+    const resolvedParams = await params;
+    username = resolvedParams.username;
     const backendUrl = `${API_URL}/api/users/username/${encodeURIComponent(username)}`;
 
     try {
@@ -106,8 +108,9 @@ export async function GET(
   } catch (error: any) {
     // Catch-all error handler - treat as user not found instead of 500
     console.error(`[API Proxy] Error in GET /api/users/username/[username]:`, error);
+    const errorUsername = username || 'unknown';
     return NextResponse.json(
-      { success: false, message: `User with username '${username}' not found` },
+      { success: false, message: `User with username '${errorUsername}' not found` },
       { status: 404 }
     );
   }
