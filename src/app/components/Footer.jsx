@@ -18,9 +18,12 @@ export default function Footer() {
   // === Effect: โหลดข้อมูล Contact จาก localStorage ===
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setContactData(JSON.parse(stored));
+      // Check if we're in browser environment
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setContactData(JSON.parse(stored));
+        }
       }
     } catch (error) {
       console.warn("Footer: failed to load contact data", error);

@@ -33,9 +33,11 @@ export function useTheme() {
 // === ThemeProvider Component ===
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(DEFAULT_THEME);
+  const [mounted, setMounted] = useState(false);
 
   // === Effect: โหลดธีมจาก localStorage และ Apply CSS Variables ===
   useEffect(() => {
+    setMounted(true);
     try {
       // โหลดธีมจาก localStorage
       const storedTheme = localStorage.getItem(STORAGE_KEY);
@@ -52,6 +54,13 @@ export function ThemeProvider({ children }) {
       applyThemeToDOM(DEFAULT_THEME);
     }
   }, []);
+
+  // Apply default theme on server-side to prevent hydration mismatch
+  useEffect(() => {
+    if (!mounted) {
+      applyThemeToDOM(DEFAULT_THEME);
+    }
+  }, [mounted]);
 
   // === ฟังก์ชัน: Apply Theme to DOM (CSS Variables) ===
   const applyThemeToDOM = (themeColors) => {

@@ -32,11 +32,14 @@ export function AuthProvider({ children }) {
   // === Effect: ตรวจสอบ Authentication เมื่อ Component Mount ===
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem(STORAGE_KEYS.currentUser);
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        setCurrentUser(user);
-        setIsAuthenticated(true);
+      // Check if we're in browser environment
+      if (typeof window !== 'undefined') {
+        const storedUser = localStorage.getItem(STORAGE_KEYS.currentUser);
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+        }
       }
     } catch (error) {
       console.error("Failed to load auth state:", error);
