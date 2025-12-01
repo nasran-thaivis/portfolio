@@ -17,29 +17,28 @@ export class AboutSectionController {
   @Patch()
   async update(@CurrentUser() user: any, @Req() req: any, @Body() createAboutSectionDto: CreateAboutSectionDto) {
     try {
-      // Try to get userId from authenticated user first
-      let userId = user?.id;
-      
-      // If no authenticated user, try to get from headers (fallback mode)
-      // Priority: x-user-id header (supports UUID, CUID, numeric IDs) > x-username header
-      if (!userId) {
-        userId = req.headers['x-user-id'] as string;
-        if (!userId) {
-          const username = req.headers['x-username'] as string;
-          if (username) {
-            console.log(`[AboutSectionController] No authenticated user, but username provided: ${username}`);
-            userId = username;
-          }
-        }
+      // 1) เริ่มจาก user ที่ auth มาก่อน
+      let identifier = user?.id as string | undefined;
+
+      // 2) แล้วค่อยดูจาก headers โดยให้ priority กับ x-username ก่อน
+      const headerUsername = req.headers['x-username'] as string | undefined;
+      const headerUserId = req.headers['x-user-id'] as string | undefined;
+
+      if (!identifier && headerUsername) {
+        identifier = headerUsername;
+        console.log(`[AboutSectionController] Using username from header: ${headerUsername}`);
+      } else if (!identifier && headerUserId) {
+        identifier = headerUserId;
+        console.log(`[AboutSectionController] Using x-user-id from header: ${headerUserId}`);
       }
       
-      if (!userId) {
+      if (!identifier) {
         console.error('[AboutSectionController] Update attempted without authentication or userId/username');
         throw new UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
       }
       
-      console.log(`[AboutSectionController] Updating about section for userId/username: ${userId}`);
-      return await this.aboutSectionService.update(userId, createAboutSectionDto);
+      console.log(`[AboutSectionController] Updating about section for userId/username: ${identifier}`);
+      return await this.aboutSectionService.update(identifier, createAboutSectionDto);
     } catch (error: any) {
       console.error('[AboutSectionController] Error updating about section:', error);
       
@@ -62,27 +61,25 @@ export class AboutSectionController {
 
   @Post()
   create(@CurrentUser() user: any, @Req() req: any, @Body() createAboutSectionDto: CreateAboutSectionDto) {
-    // Try to get userId from authenticated user first
-    let userId = user?.id;
-    
-    // If no authenticated user, try to get from headers (fallback mode)
-    if (!userId) {
-      userId = req.headers['x-user-id'] as string;
-      if (!userId) {
-        const username = req.headers['x-username'] as string;
-        if (username) {
-          console.log(`[AboutSectionController] No authenticated user, but username provided: ${username}`);
-          userId = username;
-        }
-      }
+    let identifier = user?.id as string | undefined;
+
+    const headerUsername = req.headers['x-username'] as string | undefined;
+    const headerUserId = req.headers['x-user-id'] as string | undefined;
+
+    if (!identifier && headerUsername) {
+      identifier = headerUsername;
+      console.log(`[AboutSectionController] Using username from header (POST): ${headerUsername}`);
+    } else if (!identifier && headerUserId) {
+      identifier = headerUserId;
+      console.log(`[AboutSectionController] Using x-user-id from header (POST): ${headerUserId}`);
     }
     
-    if (!userId) {
+    if (!identifier) {
       console.error('[AboutSectionController] Create attempted without authentication or userId/username');
       throw new UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
     }
     
-    console.log(`[AboutSectionController] Creating about section for userId/username: ${userId}`);
-    return this.aboutSectionService.update(userId, createAboutSectionDto);
+    console.log(`[AboutSectionController] Creating about section for userId/username: ${identifier}`);
+    return this.aboutSectionService.update(identifier, createAboutSectionDto);
   }
 }

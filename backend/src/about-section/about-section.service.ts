@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { CreateAboutSectionDto } from './dto/create-about-section.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadService } from '../upload/upload.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AboutSectionService {
   constructor(
     private prisma: PrismaService,
     private uploadService: UploadService,
+    private usersService: UsersService,
   ) {}
 
   // 1. ดึงข้อมูล (ถ้าไม่มี ให้สร้าง Default)
@@ -72,51 +74,11 @@ export class AboutSectionService {
   // userId อาจจะเป็น userId จริงๆ (UUID, CUID, หรือ timestamp string) หรือ username (fallback mode)
   async update(userIdOrUsername: string, createAboutSectionDto: CreateAboutSectionDto) {
     try {
-      let userId = userIdOrUsername;
-      
-      // ตรวจสอบว่าเป็น UUID หรือไม่ (UUID มีรูปแบบ xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrUsername);
-      
-      if (!isUUID) {
-        // ตรวจสอบว่าเป็น CUID หรือไม่ (CUID มีรูปแบบ c + 24 alphanumeric characters)
-        const isCUID = /^c[a-z0-9]{24}$/i.test(userIdOrUsername);
-        
-        if (isCUID) {
-          // เป็น CUID - ใช้โดยตรง
-          console.log(`[AboutSectionService] Using CUID userId: ${userIdOrUsername}`);
-          userId = userIdOrUsername;
-        } else {
-          // ถ้าไม่ใช่ UUID หรือ CUID อาจจะเป็น:
-          // 1. userId ที่เป็น timestamp string (เช่น "1763975423916") - ใช้โดยตรง
-          // 2. username - ต้องหา userId จาก database
-          
-          // ตรวจสอบว่าเป็นตัวเลขทั้งหมด (น่าจะเป็น timestamp ID)
-          const isNumericId = /^\d+$/.test(userIdOrUsername);
-          
-          if (isNumericId) {
-            // เป็น numeric ID (timestamp) - ใช้โดยตรง
-            console.log(`[AboutSectionService] Using numeric userId: ${userIdOrUsername}`);
-            userId = userIdOrUsername;
-          } else {
-            // น่าจะเป็น username - หา userId จาก database
-            console.log(`[AboutSectionService] Looking up userId for username: ${userIdOrUsername}`);
-            const user = await this.prisma.user.findUnique({
-              where: { username: userIdOrUsername },
-              select: { id: true },
-            });
-            
-            if (!user) {
-              throw new NotFoundException(`User with username "${userIdOrUsername}" not found in database. Please make sure the user exists.`);
-            }
-            
-            userId = user.id;
-            console.log(`[AboutSectionService] Found userId: ${userId} for username: ${userIdOrUsername}`);
-          }
-        }
-      } else {
-        // เป็น UUID - ใช้โดยตรง
-        console.log(`[AboutSectionService] Using UUID userId: ${userIdOrUsername}`);
-      }
+      // Ensure user exists in database (create if not exists)
+      const user = await this.usersService.ensureUserExists(userIdOrUsername);
+      const userId = user.id;
+
+      console.log(`[AboutSectionService] Updating about section for userId: ${userId} (from: ${userIdOrUsername})`);
 
       // แปลง proxy URL กลับเป็น path ก่อนบันทึกลง database
       let normalizedImageUrl = createAboutSectionDto.imageUrl;

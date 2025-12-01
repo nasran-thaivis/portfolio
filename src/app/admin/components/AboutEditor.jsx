@@ -18,9 +18,20 @@ export default function AboutEditor() {
 
   // Load initial data
   useEffect(() => {
+    // ต้องรู้ว่าปัจจุบันเป็น user คนไหนก่อน ถึงจะผูกกับข้อมูลใน DB ได้
+    if (!currentUser) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/about-section");
+        const username = currentUser.username || currentUser.id;
+        const url = `/api/about-section?username=${encodeURIComponent(username)}`;
+
+        const res = await fetch(url, {
+          cache: "no-store",
+        });
         
         if (!res.ok) {
           console.warn("[AboutEditor] Failed to fetch about section, using empty form");
@@ -42,7 +53,7 @@ export default function AboutEditor() {
       }
     };
     fetchData();
-  }, []);
+  }, [currentUser]);
 
   // Upload image logic
   const handleImageUpload = async (e) => {

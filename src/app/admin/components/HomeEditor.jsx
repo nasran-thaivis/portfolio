@@ -127,12 +127,20 @@ export default function HomeEditor() {
       const dataToSave = {
         ...formData,
         imageUrl: formData.imageUrl ? normalizeImageUrl(formData.imageUrl) : formData.imageUrl,
-        username: currentUsername, // ส่งไปบอกหลังบ้านว่าเป็นของใคร
+        username: currentUsername, // ส่งไปบอกหลังบ้านว่าเป็นของใคร (fallback ถ้า header ไม่มี)
       };
 
       const headers = {
         "Content-Type": "application/json",
       };
+
+      // ส่งข้อมูล user จริงไปที่ API (ให้ backend ผูกกับ user ใน DB อย่างถูกต้อง)
+      if (currentUser?.id) {
+        headers["x-user-id"] = currentUser.id;
+      }
+      if (currentUser?.username && currentUser.username !== currentUser.id) {
+        headers["x-username"] = currentUser.username;
+      }
 
       const res = await fetch("/api/hero-section", {
         method: "PATCH",
