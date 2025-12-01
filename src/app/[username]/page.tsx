@@ -1,14 +1,7 @@
 import Link from "next/link";
 import { getSignedImageUrl } from "../../lib/imageUtils";
 import { notFound } from "next/navigation";
-
-// Helper to get base URL for API calls
-function getBaseUrl() {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-}
+import { getBaseUrl } from "../../lib/getBaseUrl";
 
 // 1. ฟังก์ชันดึงข้อมูล user จาก username
 async function getUserByUsername(username: string) {
