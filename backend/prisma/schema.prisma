@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql" //ฐานข้อมูลที่ใช้งาน
-  url      = env("DATABASE_URL") //ลิงก์ฐานข้อมูลจาก .env ที่อยู่ในระดับ root ของโปรเจค
 }
 
 model User {

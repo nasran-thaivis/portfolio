@@ -6,13 +6,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
-    super({
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
-    });
+    super();
     
     // Validate and log DATABASE_URL for debugging (without password)
     const dbUrl = process.env.DATABASE_URL;
