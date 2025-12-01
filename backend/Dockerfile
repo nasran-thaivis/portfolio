@@ -39,5 +39,6 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 3001
 
 # Start application
+# Note: Prisma generate and migrate will be run in docker-compose command
 CMD ["npm", "run", "start:prod"]
 
