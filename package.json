@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "dev:all": "concurrently \"npm run dev\" \"cd backend && npm run start:dev\"",
-    "build": "next build",
+    "build": "prisma generate --schema=./backend/prisma/schema.prisma && next build",
     "start": "next start -p 3000",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate --schema=./backend/prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "6.19.0",
