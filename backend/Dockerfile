@@ -6,13 +6,16 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
+COPY tsconfig.json ./
 
 # Install dependencies
 RUN npm ci
 
 # Generate Prisma Client (needed for TypeScript compilation)
-# Note: prisma generate doesn't need DATABASE_URL - it only reads schema.prisma
-RUN npx prisma generate
+# Note: Prisma 7 reads DATABASE_URL from prisma.config.ts
+# Use a dummy URL for build-time generation (will be regenerated at runtime)
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Copy source code
 COPY . .
@@ -28,14 +31,16 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
+COPY tsconfig.json ./
 
 # Install production dependencies only
 RUN npm ci --omit=dev
 
 # Generate Prisma Client for production
-# This ensures the client is available even if runtime generation fails
-# Will be regenerated at runtime with correct DATABASE_URL in start:prod script
-RUN npx prisma generate
+# Note: Prisma 7 reads DATABASE_URL from prisma.config.ts
+# Use a dummy URL for build-time generation (will be regenerated at runtime with correct URL)
+RUN DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npx prisma generate
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist

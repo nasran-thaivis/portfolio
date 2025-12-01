@@ -22,13 +22,13 @@ for (const envPath of possiblePaths) {
 dotenv.config();
 
 // ตรวจสอบว่า DATABASE_URL ถูกตั้งค่าหรือไม่
-const databaseUrl = process.env.DATABASE_URL;
+// สำหรับ build-time อาจจะไม่มี DATABASE_URL (จะใช้ dummy URL)
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
 
-if (!databaseUrl) {
-  console.error('❌ ERROR: DATABASE_URL is not set!');
-  console.error('Please set DATABASE_URL in .env file or environment variables');
-  console.error('Example: DATABASE_URL="mysql://user:password@localhost:3306/database_name"');
-  process.exit(1);
+// แสดง warning ถ้าไม่มี DATABASE_URL (แต่ไม่ exit เพื่อให้ build ผ่านได้)
+if (!process.env.DATABASE_URL) {
+  console.warn('⚠️ WARNING: DATABASE_URL is not set! Using dummy URL for build-time generation.');
+  console.warn('DATABASE_URL will be required at runtime.');
 }
 
 // ตรวจสอบ provider จาก DATABASE_URL
