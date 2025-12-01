@@ -6,7 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql" //ฐานข้อมูลที่ใช้งาน
+  provider = "postgresql" //ฐานข้อมูลที่ใช้งาน (เปลี่ยนเป็น postgresql เพื่อให้ตรงกับ docker-compose.yml)
+  // url ถูกย้ายไปที่ prisma.config.ts แล้ว (Prisma 7)
 }
 
 model User {
