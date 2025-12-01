@@ -10,12 +10,14 @@ COPY prisma ./prisma/
 # Install dependencies
 RUN npm ci
 
+# Generate Prisma Client (needed for TypeScript compilation)
+# Note: prisma generate doesn't need DATABASE_URL - it only reads schema.prisma
+RUN npx prisma generate
+
 # Copy source code
 COPY . .
 
 # Build application
-# Note: Prisma Client will be generated at runtime with correct DATABASE_URL
-# This ensures the client uses the actual database URL from environment variables
 RUN npm run build
 
 # Production stage
@@ -30,11 +32,13 @@ COPY prisma ./prisma/
 # Install production dependencies only
 RUN npm ci --omit=dev
 
+# Generate Prisma Client for production
+# This ensures the client is available even if runtime generation fails
+# Will be regenerated at runtime with correct DATABASE_URL in start:prod script
+RUN npx prisma generate
+
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
-
-# Note: Prisma Client will be generated at runtime with correct DATABASE_URL
-# Do NOT copy .prisma from builder stage to avoid using wrong DATABASE_URL
 
 # Expose port
 EXPOSE 3001
