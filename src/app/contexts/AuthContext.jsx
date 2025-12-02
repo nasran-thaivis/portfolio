@@ -55,6 +55,9 @@ export function AuthProvider({ children }) {
         return { success: false, message: "Username is required" };
       }
 
+      // Log registration data (ไม่ log password)
+      console.log('[AuthContext] Register request:', { email, name, username, passwordLength: password?.length });
+
       // เรียก API เพื่อสร้าง user ใหม่
       let response;
       try {
@@ -62,13 +65,16 @@ export function AuthProvider({ children }) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
         
+        const requestBody = { email, password, name, username };
+        console.log('[AuthContext] Sending register request to /api/users:', { email, name, username });
+        
         // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
         response = await fetch("/api/users", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, password, name, username }),
+          body: JSON.stringify(requestBody),
           signal: controller.signal,
         }).finally(() => {
           clearTimeout(timeoutId);
@@ -200,11 +206,15 @@ export function AuthProvider({ children }) {
   // === ฟังก์ชัน: Login (เข้าสู่ระบบ) ===
   const login = async (email, password) => {
     try {
+      console.log('[AuthContext] Login request:', { email, hasPassword: !!password });
+      
       // เรียก API เพื่อตรวจสอบ credentials
       let response;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+        
+        console.log('[AuthContext] Sending login request to /api/users');
         
         // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
         response = await fetch("/api/users", {

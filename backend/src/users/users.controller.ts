@@ -66,10 +66,23 @@ export class UsersController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginUserDto: LoginUserDto) {
+    console.log('[UsersController] login() called with:', {
+      email: loginUserDto.email,
+      hasPassword: !!loginUserDto.password,
+    });
+    
     const user = await this.usersService.validateUser(loginUserDto.email, loginUserDto.password);
     if (!user) {
+      console.log('[UsersController] Login failed: Invalid email or password');
       return { success: false, message: 'Invalid email or password' };
     }
+    
+    console.log('[UsersController] Login successful:', {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    });
+    
     return { success: true, user, message: 'Login successful' };
   }
 
@@ -77,9 +90,25 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() createUserDto: CreateUserDto) {
     try {
+      console.log('[UsersController] register() called with:', {
+        email: createUserDto.email,
+        name: createUserDto.name,
+        username: createUserDto.username,
+        hasPassword: !!createUserDto.password,
+      });
+      
       const user = await this.usersService.create(createUserDto);
+      
+      console.log('[UsersController] Registration successful:', {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        username: user.username,
+      });
+      
       return { success: true, user, message: 'Registration successful' };
     } catch (error) {
+      console.error('[UsersController] Registration failed:', error.message);
       return { 
         success: false, 
         message: error.message || 'Registration failed' 

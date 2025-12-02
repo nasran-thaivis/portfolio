@@ -37,12 +37,23 @@ export async function GET(
 
       if (response.ok) {
         const data = await response.json();
+        console.log(`[API Proxy] Backend response for username ${username}:`, data);
+        
         // Backend ส่งกลับมาเป็น { success: true, user: {...} }
         // Extract user object และส่งกลับ user โดยตรง
         if (data && data.user) {
+          console.log(`[API Proxy] Extracted user from response:`, data.user);
           return NextResponse.json(data.user);
         }
+        
+        // ถ้าไม่มี user property แต่มี id หรือ username โดยตรง แสดงว่าเป็น user object แล้ว
+        if (data && (data.id || data.username)) {
+          console.log(`[API Proxy] Response is already a user object:`, data);
+          return NextResponse.json(data);
+        }
+        
         // ถ้าไม่มี user property ให้ส่งกลับ data โดยตรง (fallback)
+        console.warn(`[API Proxy] Unexpected response format for username ${username}:`, data);
         return NextResponse.json(data);
       }
 

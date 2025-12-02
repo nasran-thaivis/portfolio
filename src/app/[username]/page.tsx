@@ -15,16 +15,30 @@ async function getUserByUsername(username: string) {
 
     if (!res.ok) {
       console.error(`[UserProfile] User not found: ${username}, status: ${res.status}`);
+      // Try to get error message from response
+      try {
+        const errorData = await res.json();
+        console.error(`[UserProfile] Error response:`, errorData);
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
       return null;
     }
 
     const data = await res.json();
+    console.log(`[UserProfile] Response data:`, data);
 
     // ✅ เช็คจากรูปแบบข้อมูลจริงที่ Backend ส่งกลับมา (raw user object)
-    // ตัวอย่าง: { id: '...', username: '...', ... }
-    if (data && (data.id || data.username)) {
-      console.log(`[UserProfile] User found: ${data.username || username}`);
-      return data;
+    // อาจเป็น { id: '...', username: '...', ... } โดยตรง หรือ { success: true, user: {...} }
+    let user = data;
+    if (data && data.user) {
+      // ถ้า response เป็น { success: true, user: {...} }
+      user = data.user;
+    }
+
+    if (user && (user.id || user.username)) {
+      console.log(`[UserProfile] User found: ${user.username || username} (${user.id})`);
+      return user;
     }
 
     console.error(`[UserProfile] Invalid response format for user: ${username}`, data);

@@ -67,13 +67,23 @@ export class UsersService {
   }
 
   async validateUser(email: string, password: string) {
+    console.log('[UsersService] validateUser() called with:', { email, hasPassword: !!password });
+    
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
-    if (!user || user.password !== password) {
+    if (!user) {
+      console.log('[UsersService] User not found with email:', email);
       return null;
     }
+
+    if (user.password !== password) {
+      console.log('[UsersService] Password mismatch for email:', email);
+      return null;
+    }
+
+    console.log('[UsersService] Login successful for user:', { id: user.id, email: user.email, username: user.username });
 
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
@@ -81,12 +91,21 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto) {
+    // Log incoming data (ไม่ log password)
+    console.log('[UsersService] create() called with:', {
+      email: createUserDto.email,
+      name: createUserDto.name,
+      username: createUserDto.username,
+      hasPassword: !!createUserDto.password,
+    });
+
     // Check if email already exists
     const existingEmail = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
 
     if (existingEmail) {
+      console.log('[UsersService] Email already exists:', createUserDto.email);
       throw new ConflictException('Email already exists');
     }
 
@@ -96,10 +115,17 @@ export class UsersService {
     });
 
     if (existingUsername) {
+      console.log('[UsersService] Username already exists:', createUserDto.username);
       throw new ConflictException('Username already exists');
     }
 
     // ⚠️ In production, hash password with bcrypt
+    console.log('[UsersService] Creating user with data:', {
+      email: createUserDto.email,
+      name: createUserDto.name,
+      username: createUserDto.username,
+    });
+    
     const user = await this.prisma.user.create({
       data: createUserDto,
       select: {
@@ -110,6 +136,13 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
       },
+    });
+
+    console.log('[UsersService] User created successfully:', {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      username: user.username,
     });
 
     return user;
@@ -152,6 +185,8 @@ export class UsersService {
    * @returns User object (existing or newly created)
    */
   async ensureUserExists(userIdOrUsername: string) {
+    console.log(`[UsersService] ensureUserExists() called with: ${userIdOrUsername}`);
+    
     // Check if it's a UUID
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrUsername);
     
@@ -169,6 +204,9 @@ export class UsersService {
         user = await this.prisma.user.findUnique({
           where: { id: userIdOrUsername },
         });
+        if (user) {
+          console.log(`[UsersService] Found user by ID: ${userIdOrUsername}`, { id: user.id, email: user.email, username: user.username });
+        }
       } catch (error) {
         // If not found, continue to try username
         console.log(`[UsersService] User with ID ${userIdOrUsername} not found, trying username`);
@@ -180,14 +218,23 @@ export class UsersService {
       user = await this.prisma.user.findUnique({
         where: { username: userIdOrUsername },
       });
+      if (user) {
+        console.log(`[UsersService] Found user by username: ${userIdOrUsername}`, { id: user.id, email: user.email, username: user.username });
+      }
     }
 
     // If user exists, return it
     if (user) {
+      console.log(`[UsersService] Returning existing user: ${user.username} (${user.id})`);
       return user;
     }
 
     // User doesn't exist - create a new one automatically
+    // ⚠️ WARNING: This should only be called from Admin dashboard when user is authenticated
+    // If user registered properly, they should exist in database
+    console.warn(`[UsersService] User not found: ${userIdOrUsername}. Creating auto-generated user.`);
+    console.warn(`[UsersService] ⚠️ This should only happen when saving data in Admin dashboard for the first time.`);
+    
     // Use userIdOrUsername as username if it's not a UUID/CUID/numeric ID
     const username = (isUUID || isCUID || isNumericId) ? `user_${Date.now()}` : userIdOrUsername;
     const name = (isUUID || isCUID || isNumericId) ? `User ${Date.now()}` : userIdOrUsername;
@@ -213,7 +260,7 @@ export class UsersService {
       },
     });
 
-    console.log(`[UsersService] Auto-created user: ${username} (${newUser.id})`);
+    console.log(`[UsersService] Auto-created user: ${username} (${newUser.id}) with email: ${email}`);
     return newUser;
   }
 }

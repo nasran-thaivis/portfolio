@@ -66,6 +66,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, password, name, username, action } = body;
 
+    // Log incoming request (ไม่ log password)
+    console.log('[API Proxy] POST /api/users:', { action, email, name, username, hasPassword: !!password });
+
     // Determine backend endpoint based on action
     let backendUrl: string;
     let requestBody: any;
@@ -74,13 +77,16 @@ export async function POST(request: NextRequest) {
       // Login: POST /api/users/login
       backendUrl = `${API_URL}/api/users/login`;
       requestBody = { email, password };
+      console.log('[API Proxy] Login request body:', { email, hasPassword: !!password });
     } else {
       // Register: POST /api/users/register
       backendUrl = `${API_URL}/api/users/register`;
       requestBody = { email, password, name, username };
+      console.log('[API Proxy] Register request body:', { email, name, username, hasPassword: !!password });
     }
 
     try {
+      console.log('[API Proxy] Forwarding to backend:', backendUrl);
       const response = await fetchWithTimeout(backendUrl, {
         method: 'POST',
         headers: {
