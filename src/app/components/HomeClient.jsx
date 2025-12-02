@@ -9,12 +9,17 @@ import { useAuth } from "../contexts/AuthContext";
 // === Component หน้า Home (Client-side) ===
 // ดึงข้อมูล hero section จาก API เมื่อ login แล้ว
 export default function HomeClient() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [heroData, setHeroData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // ดึงข้อมูลจาก API
   useEffect(() => {
+    // รอให้ AuthContext โหลดเสร็จก่อน
+    if (authLoading) {
+      return;
+    }
+
     const fetchHeroData = async () => {
       if (!currentUser?.username) {
         setLoading(false);
@@ -22,6 +27,7 @@ export default function HomeClient() {
       }
 
       try {
+        console.log(`[HomeClient] Fetching hero data for username: ${currentUser.username}`);
         const res = await fetch(`/api/hero-section?username=${currentUser.username}`, {
           cache: "no-store",
         });
@@ -34,6 +40,7 @@ export default function HomeClient() {
               ...data,
               imageUrl: data.imageUrl ? getSignedImageUrl(data.imageUrl) : data.imageUrl,
             };
+            console.log(`[HomeClient] Hero data loaded:`, formattedData);
             setHeroData(formattedData);
           }
         } else {
@@ -47,9 +54,10 @@ export default function HomeClient() {
     };
 
     fetchHeroData();
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
-  if (loading) {
+  // รอให้ AuthContext โหลดเสร็จก่อน
+  if (authLoading || loading) {
     return (
       <Container title="Home">
         <div className="text-center py-20 animate-pulse">

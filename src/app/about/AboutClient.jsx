@@ -34,12 +34,17 @@ I'm passionate about creating modern web applications and providing excellent IT
 // === Component หน้า About (Client-side) ===
 // ดึงข้อมูลจาก API
 export default function AboutClient() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [data, setData] = useState(DEFAULT_DATA);
   const [loading, setLoading] = useState(true);
 
   // ดึงข้อมูลจาก API
   useEffect(() => {
+    // รอให้ AuthContext โหลดเสร็จก่อน
+    if (authLoading) {
+      return;
+    }
+
     const fetchAboutData = async () => {
       if (!currentUser?.username) {
         setLoading(false);
@@ -47,6 +52,7 @@ export default function AboutClient() {
       }
 
       try {
+        console.log(`[AboutClient] Fetching about data for username: ${currentUser.username}`);
         // ใช้ relative URL สำหรับ client-side
         const res = await fetch(`/api/about-section?username=${currentUser.username}`, {
           cache: "no-store",
@@ -64,6 +70,7 @@ export default function AboutClient() {
               content: aboutData.content || aboutData.description || DEFAULT_DATA.content,
               skills: aboutData.skills || DEFAULT_DATA.skills,
             };
+            console.log(`[AboutClient] About data loaded:`, formattedData);
             setData(formattedData);
           }
         } else {
@@ -77,9 +84,10 @@ export default function AboutClient() {
     };
 
     fetchAboutData();
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
-  if (loading) {
+  // รอให้ AuthContext โหลดเสร็จก่อน
+  if (authLoading || loading) {
     return (
       <div className="text-center py-20 animate-pulse">
         <p className="text-xl text-gray-300">กำลังโหลดข้อมูล...</p>

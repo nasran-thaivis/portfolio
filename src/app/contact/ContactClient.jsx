@@ -6,12 +6,17 @@ import ContactForm from "./ContactForm";
 import { SOCIAL } from "../data/socialLinks";
 
 export default function ContactClient() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // ดึงข้อมูล user จาก API
   useEffect(() => {
+    // รอให้ AuthContext โหลดเสร็จก่อน
+    if (authLoading) {
+      return;
+    }
+
     const fetchUserData = async () => {
       if (!currentUser?.username) {
         setLoading(false);
@@ -19,6 +24,7 @@ export default function ContactClient() {
       }
 
       try {
+        console.log(`[ContactClient] Fetching user data for username: ${currentUser.username}`);
         const res = await fetch(`/api/users/username/${currentUser.username}`, {
           cache: "no-store",
         });
@@ -28,6 +34,7 @@ export default function ContactClient() {
           // Handle both direct user object and wrapped response
           const user = data.user || data;
           if (user && (user.id || user.username)) {
+            console.log(`[ContactClient] User data loaded:`, user);
             setUserData(user);
           }
         } else {
@@ -41,9 +48,10 @@ export default function ContactClient() {
     };
 
     fetchUserData();
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
-  if (loading) {
+  // รอให้ AuthContext โหลดเสร็จก่อน
+  if (authLoading || loading) {
     return (
       <div className="text-center py-20 animate-pulse">
         <p className="text-xl text-gray-300">กำลังโหลดข้อมูล...</p>

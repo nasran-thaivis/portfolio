@@ -27,7 +27,7 @@ function Stars({ value }) {
 }
 
 export default function ReviewClient() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +41,11 @@ export default function ReviewClient() {
 
   // ดึงข้อมูลจาก API
   useEffect(() => {
+    // รอให้ AuthContext โหลดเสร็จก่อน
+    if (authLoading) {
+      return;
+    }
+
     const fetchReviews = async () => {
       if (!currentUser?.username) {
         setLoading(false);
@@ -48,13 +53,16 @@ export default function ReviewClient() {
       }
 
       try {
+        console.log(`[ReviewClient] Fetching reviews for username: ${currentUser.username}`);
         const res = await fetch(`/api/reviews?username=${currentUser.username}`, {
           cache: "no-store",
         });
         
         if (res.ok) {
           const data = await res.json();
-          setReviews(Array.isArray(data) ? data : []);
+          const reviewsData = Array.isArray(data) ? data : [];
+          console.log(`[ReviewClient] Reviews loaded: ${reviewsData.length} items`);
+          setReviews(reviewsData);
         } else {
           console.warn(`[ReviewClient] Failed to fetch reviews: ${res.status}`);
           setReviews([]);
@@ -68,7 +76,7 @@ export default function ReviewClient() {
     };
 
     fetchReviews();
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
   // === ฟังก์ชันจัดการ: Submit Review ===
   const handleSubmit = async (e) => {
@@ -133,7 +141,8 @@ export default function ReviewClient() {
     }
   };
 
-  if (loading) {
+  // รอให้ AuthContext โหลดเสร็จก่อน
+  if (authLoading || loading) {
     return (
       <Container title="Reviews">
         <div className="text-center py-20 animate-pulse">

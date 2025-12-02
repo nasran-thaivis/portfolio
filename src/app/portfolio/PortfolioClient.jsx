@@ -141,7 +141,7 @@ const PortfolioForm = ({ currentItem, onSubmit, onCancel }) => {
 
 // === Component หลักของหน้า Portfolio ===
 export default function PortfolioClient() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -149,6 +149,11 @@ export default function PortfolioClient() {
 
   // ดึงข้อมูลจาก API
   useEffect(() => {
+    // รอให้ AuthContext โหลดเสร็จก่อน
+    if (authLoading) {
+      return;
+    }
+
     const fetchProjects = async () => {
       if (!currentUser?.username) {
         setLoading(false);
@@ -156,6 +161,7 @@ export default function PortfolioClient() {
       }
 
       try {
+        console.log(`[PortfolioClient] Fetching projects for username: ${currentUser.username}`);
         const res = await fetch(`/api/projects?username=${currentUser.username}`, {
           cache: "no-store",
         });
@@ -168,6 +174,7 @@ export default function PortfolioClient() {
             ...project,
             imageUrl: project.imageUrl ? getSignedImageUrl(project.imageUrl) : project.imageUrl,
           }));
+          console.log(`[PortfolioClient] Projects loaded: ${projectsWithUrls.length} items`);
           setItems(projectsWithUrls);
         } else {
           console.warn(`[PortfolioClient] Failed to fetch projects: ${res.status}`);
@@ -182,7 +189,7 @@ export default function PortfolioClient() {
     };
 
     fetchProjects();
-  }, [currentUser]);
+  }, [currentUser, authLoading]);
 
   // === ฟังก์ชันจัดการ: ลบ Project ===
   const handleDelete = async (idToDelete) => {
@@ -306,7 +313,8 @@ export default function PortfolioClient() {
   const columns = groupItemsIntoColumns(items);
 
   // === UI Render ===
-  if (loading) {
+  // รอให้ AuthContext โหลดเสร็จก่อน
+  if (authLoading || loading) {
     return (
       <Container title="Portfolio">
         <div className="text-center py-20 animate-pulse">
