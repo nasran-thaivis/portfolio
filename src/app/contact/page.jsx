@@ -1,5 +1,5 @@
 import Container from "../components/Container";
-import ContactForm from "./ContactForm";
+import ContactClient from "./ContactClient";
 
 // Runtime configuration for Vercel
 export const runtime = 'nodejs';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default function ContactPage() {
   return (
     <Container title="Contact">
-      <ContactForm />
+      <ContactClient />
     </Container>
   );
 }

@@ -61,7 +61,7 @@ export default function AboutClient() {
               imageUrl: aboutData.imageUrl ? getSignedImageUrl(aboutData.imageUrl) : aboutData.imageUrl,
               title: aboutData.title || DEFAULT_DATA.title,
               description: aboutData.description || DEFAULT_DATA.description,
-              content: aboutData.description || DEFAULT_DATA.content,
+              content: aboutData.content || aboutData.description || DEFAULT_DATA.content,
               skills: aboutData.skills || DEFAULT_DATA.skills,
             };
             setData(formattedData);
