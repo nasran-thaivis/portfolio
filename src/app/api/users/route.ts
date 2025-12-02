@@ -1,142 +1,139 @@
-import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { NextRequest, NextResponse } from "next/server";
 
-// Path to users.json file
-const usersFilePath = path.join(process.cwd(), "data", "users.json");
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const TIMEOUT_MS = 15000; // 15 seconds
 
-// Helper function to read users from JSON file
-function readUsers() {
+async function fetchWithTimeout(url: string, options: RequestInit = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
   try {
-    const fileContents = fs.readFileSync(usersFilePath, "utf8");
-    return JSON.parse(fileContents);
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
   } catch (error) {
-    console.error("Error reading users file:", error);
-    return [];
+    clearTimeout(timeoutId);
+    throw error;
   }
 }
 
-// Helper function to write users to JSON file
-function writeUsers(users: any[]) {
-  try {
-    fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2), "utf8");
-    return true;
-  } catch (error) {
-    console.error("Error writing users file:", error);
-    return false;
-  }
-}
-
-// GET: Read all users (without passwords for security)
+// GET: Read all users (proxy to backend)
 export async function GET() {
   try {
-    const users = readUsers();
-    // Remove passwords before sending to client
-    const usersWithoutPasswords = users.map(({ password, ...user }: any) => user);
-    return NextResponse.json({ success: true, users: usersWithoutPasswords });
-  } catch (error) {
+    const backendUrl = `${API_URL}/api/users`;
+
+    try {
+      const response = await fetchWithTimeout(backendUrl, {
+        cache: "no-store",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return NextResponse.json(data);
+      }
+
+      throw new Error(`Backend error: ${response.status}`);
+    } catch (fetchError: any) {
+      // Network error or timeout - backend unavailable
+      if (
+        fetchError.name === 'AbortError' ||
+        (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))
+      ) {
+        console.warn(`[API Proxy] Backend unavailable for GET /api/users`);
+        return NextResponse.json(
+          { success: false, message: "Backend is not available. Please make sure the backend server is running." },
+          { status: 503 }
+        );
+      }
+
+      throw fetchError;
+    }
+  } catch (error: any) {
+    console.error("GET /api/users error", error);
     return NextResponse.json(
-      { success: false, message: "Failed to read users" },
+      { success: false, message: error.message || "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// POST: Create new user (Register)
-export async function POST(request: Request) {
+// POST: Login or Register (proxy to backend)
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, password, name, username, action } = body;
 
-    // If action is "login", verify credentials
-    if (action === "login") {
-      const users = readUsers();
-      const user = users.find(
-        (u: any) => u.email === email && u.password === password
-      );
+    // Determine backend endpoint based on action
+    let backendUrl: string;
+    let requestBody: any;
 
-      if (!user) {
-        return NextResponse.json(
-          { success: false, message: "Invalid email or password" },
-          { status: 401 }
-        );
+    if (action === "login") {
+      // Login: POST /api/users/login
+      backendUrl = `${API_URL}/api/users/login`;
+      requestBody = { email, password };
+    } else {
+      // Register: POST /api/users/register
+      backendUrl = `${API_URL}/api/users/register`;
+      requestBody = { email, password, name, username };
+    }
+
+    try {
+      const response = await fetchWithTimeout(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return NextResponse.json(data);
       }
 
-      // Return user without password
-      const { password: _, ...userWithoutPassword } = user;
-      return NextResponse.json({
-        success: true,
-        message: "Login successful",
-        user: userWithoutPassword,
-      });
-    }
-
-    // If action is "register", create new user
-    if (!email || !password || !name) {
-      return NextResponse.json(
-        { success: false, message: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    const users = readUsers();
-
-    // Check if email already exists
-    const existingUser = users.find((u: any) => u.email === email || (username && u.username === username));
-    if (existingUser) {
+      const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
         { 
           success: false, 
-          message: existingUser.email === email 
-            ? "Email already exists" 
-            : "Username already exists" 
+          message: errorData.message || (action === "login" ? "Login failed" : "Registration failed") 
         },
-        { status: 409 }
+        { status: response.status }
       );
+    } catch (fetchError: any) {
+      // Network error or timeout
+      if (
+        fetchError.name === 'AbortError' ||
+        (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))
+      ) {
+        console.warn(`[API Proxy] Backend unavailable for POST /api/users (${action || 'register'})`);
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: "Backend is not available. Please make sure the backend server is running." 
+          },
+          { status: 503 }
+        );
+      }
+
+      throw fetchError;
     }
-
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      email,
-      password, // ⚠️ In production, use bcrypt to hash password
-      name,
-      username: username || email.split('@')[0], // Use username if provided, otherwise use email prefix
-      createdAt: new Date().toISOString(),
-    };
-
-    users.push(newUser);
-
-    // Write to file
-    const writeSuccess = writeUsers(users);
-    if (!writeSuccess) {
-      return NextResponse.json(
-        { success: false, message: "Failed to save user" },
-        { status: 500 }
-      );
-    }
-
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = newUser;
-    return NextResponse.json({
-      success: true,
-      message: "Registration successful",
-      user: userWithoutPassword,
-    });
-  } catch (error) {
-    console.error("Error in POST /api/users:", error);
+  } catch (error: any) {
+    console.error("POST /api/users error", error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: error.message || "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-// PUT: Update user (Change password, update profile)
-export async function PUT(request: Request) {
+// PUT: Update user (proxy to backend)
+export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, email, password, name } = body;
+    const { id, email, password, name, username } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -145,41 +142,52 @@ export async function PUT(request: Request) {
       );
     }
 
-    const users = readUsers();
-    const userIndex = users.findIndex((u: any) => u.id === id);
+    const backendUrl = `${API_URL}/api/users/${id}`;
 
-    if (userIndex === -1) {
+    try {
+      const response = await fetchWithTimeout(backendUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, name, username }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return NextResponse.json(data);
+      }
+
+      const errorData = await response.json().catch(() => ({}));
       return NextResponse.json(
-        { success: false, message: "User not found" },
-        { status: 404 }
+        { 
+          success: false, 
+          message: errorData.message || "Failed to update user" 
+        },
+        { status: response.status }
       );
+    } catch (fetchError: any) {
+      // Network error or timeout
+      if (
+        fetchError.name === 'AbortError' ||
+        (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))
+      ) {
+        console.warn(`[API Proxy] Backend unavailable for PUT /api/users/${id}`);
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: "Backend is not available. Please make sure the backend server is running." 
+          },
+          { status: 503 }
+        );
+      }
+
+      throw fetchError;
     }
-
-    // Update user fields
-    if (email) users[userIndex].email = email;
-    if (password) users[userIndex].password = password; // ⚠️ Should hash in production
-    if (name) users[userIndex].name = name;
-
-    // Write to file
-    const writeSuccess = writeUsers(users);
-    if (!writeSuccess) {
-      return NextResponse.json(
-        { success: false, message: "Failed to update user" },
-        { status: 500 }
-      );
-    }
-
-    // Return updated user without password
-    const { password: _, ...userWithoutPassword } = users[userIndex];
-    return NextResponse.json({
-      success: true,
-      message: "User updated successfully",
-      user: userWithoutPassword,
-    });
-  } catch (error) {
-    console.error("Error in PUT /api/users:", error);
+  } catch (error: any) {
+    console.error("PUT /api/users error", error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: error.message || "Internal server error" },
       { status: 500 }
     );
   }
