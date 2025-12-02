@@ -3,6 +3,10 @@ import { getSignedImageUrl } from "../../../lib/imageUtils";
 import { notFound } from "next/navigation";
 import { getBaseUrl } from "../../../lib/getBaseUrl";
 
+// Runtime configuration for Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // 1. ฟังก์ชันดึงข้อมูล user จาก username
 async function getUserByUsername(username) {
   try {
@@ -65,7 +69,7 @@ async function getAboutData(username) {
 }
 
 export default async function AboutPage({ params }) {
-  // Next.js 15: params ต้อง await ก่อนใช้งาน
+  // Next.js 15: params is a Promise, must await before use
   const { username } = await params;
 
   // 1. ตรวจสอบว่า user มีอยู่จริงไหม

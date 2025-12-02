@@ -4,6 +4,10 @@ import ContactForm from "./ContactForm";
 import { notFound } from "next/navigation";
 import { getBaseUrl } from "../../../lib/getBaseUrl";
 
+// Runtime configuration for Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 async function getUserByUsername(username) {
   try {
     const baseUrl = getBaseUrl();
@@ -37,6 +41,7 @@ async function getUserByUsername(username) {
 }
 
 export default async function ContactPage({ params }) {
+  // Next.js 15: params is a Promise, must await before use
   const { username } = await params;
 
   // ตรวจสอบว่า user มีอยู่จริง
