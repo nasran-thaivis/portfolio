@@ -1,46 +1,52 @@
 -- CreateTable
-CREATE TABLE "projects" (
-    "id" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
-    "description" TEXT,
-    "imageUrl" TEXT,
-    "link" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+CREATE TABLE `projects` (
+    `id` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL,
+    `description` TEXT NULL,
+    `imageUrl` VARCHAR(191) NULL,
+    `link` VARCHAR(191) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
 
-    CONSTRAINT "projects_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "reviews" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "rating" INTEGER NOT NULL DEFAULT 5,
-    "comment" TEXT NOT NULL,
-    "avatarUrl" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "reviews_pkey" PRIMARY KEY ("id")
-);
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE "hero_sections" (
-    "id" INTEGER NOT NULL DEFAULT 1,
-    "title" TEXT NOT NULL DEFAULT 'Welcome',
-    "description" TEXT DEFAULT 'This is My First Project.',
-    "imageUrl" TEXT,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+CREATE TABLE `reviews` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `rating` INTEGER NOT NULL DEFAULT 5,
+    `comment` TEXT NOT NULL,
+    `avatarUrl` VARCHAR(191) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
-    CONSTRAINT "hero_sections_pkey" PRIMARY KEY ("id")
-);
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE "about_sections" (
-    "id" INTEGER NOT NULL DEFAULT 1,
-    "title" TEXT NOT NULL DEFAULT 'About Me',
-    "description" TEXT,
-    "imageUrl" TEXT,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+CREATE TABLE `hero_sections` (
+    `id` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL DEFAULT 'Welcome',
+    `description` VARCHAR(191) NULL DEFAULT 'This is My First Project.',
+    `imageUrl` VARCHAR(191) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `updatedAt` DATETIME(3) NOT NULL,
 
-    CONSTRAINT "about_sections_pkey" PRIMARY KEY ("id")
-);
+    UNIQUE INDEX `hero_sections_userId_key`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `about_sections` (
+    `id` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL DEFAULT 'About Me',
+    `description` TEXT NULL,
+    `imageUrl` VARCHAR(191) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `about_sections_userId_key`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
