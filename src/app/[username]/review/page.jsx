@@ -7,34 +7,25 @@ async function getUserByUsername(username) {
     const baseUrl = getBaseUrl();
     const url = `${baseUrl}/api/users/username/${username}`;
     console.log(`[ReviewPage] Fetching user: ${url}`);
-    
+
     const res = await fetch(url, {
       cache: "no-store",
     });
-    
+
     if (!res.ok) {
       console.error(`[ReviewPage] User not found: ${username}, status: ${res.status}`);
       return null;
     }
-    
+
     const data = await res.json();
-    
-    // Handle both success:false and success:true formats
-    if (data.success === false) {
-      console.error(`[ReviewPage] User not found: ${username}`);
-      return null;
-    }
-    
-    if (data.success && data.user) {
-      console.log(`[ReviewPage] User found: ${username}`, data.user.username);
-      return data.user;
-    }
-    
-    // Fallback: if data has user properties directly
-    if (data.username || data.email) {
+
+    // ✅ เช็คจากรูปแบบข้อมูลจริงที่ Backend ส่งกลับมา (raw user object)
+    // ตัวอย่าง: { id: '...', username: '...', ... }
+    if (data && (data.id || data.username)) {
+      console.log(`[ReviewPage] User found: ${data.username || username}`);
       return data;
     }
-    
+
     console.error(`[ReviewPage] Invalid response format for user: ${username}`, data);
     return null;
   } catch (error) {
