@@ -24,11 +24,17 @@ async function getUserByUsername(username) {
 
     const data = await res.json();
 
-    // ✅ เช็คจากรูปแบบข้อมูลจริงที่ Backend ส่งกลับมา (raw user object)
-    // ตัวอย่าง: { id: '...', username: '...', ... }
-    if (data && (data.id || data.username)) {
-      console.log(`[PortfolioPage] User found: ${data.username || username}`);
-      return data;
+    // ✅ เช็คจากรูปแบบข้อมูลจริงที่ Backend ส่งกลับมา
+    // อาจเป็น { id: '...', username: '...', ... } หรือ { success: true, user: {...} }
+    let user = data;
+    if (data && data.user) {
+      // ถ้า response เป็น { success: true, user: {...} }
+      user = data.user;
+    }
+    
+    if (user && (user.id || user.username)) {
+      console.log(`[PortfolioPage] User found: ${user.username || username}`);
+      return user;
     }
 
     console.error(`[PortfolioPage] Invalid response format for user: ${username}`, data);
