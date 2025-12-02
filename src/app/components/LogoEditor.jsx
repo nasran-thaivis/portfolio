@@ -1,7 +1,6 @@
 "use client";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { getApiUrl } from "../../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 import { usePathname } from "next/navigation";
 
@@ -34,7 +33,8 @@ export default function LogoEditor({ size = 36, showControls = true }) {
       try {
         // Encode username เพื่อป้องกันปัญหาเมื่อมีอักขระพิเศษ (เช่น @, .)
         const encodedUsername = encodeURIComponent(username);
-        const apiUrl = getApiUrl(`/api/hero-section?username=${encodedUsername}`);
+        // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+        const apiUrl = `/api/hero-section?username=${encodedUsername}`;
         
         // สร้าง AbortController สำหรับ timeout
         const controller = new AbortController();
@@ -107,8 +107,14 @@ export default function LogoEditor({ size = 36, showControls = true }) {
       const formDataToUpload = new FormData();
       formDataToUpload.append('file', file);
 
-      const uploadRes = await fetch(getApiUrl('/api/upload/image'), {
+      // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      const uploadRes = await fetch('/api/upload/image', {
         method: 'POST',
+        headers,
         body: formDataToUpload,
       });
 
@@ -124,10 +130,8 @@ export default function LogoEditor({ size = 36, showControls = true }) {
         throw new Error("Authentication required");
       }
       
-      // Encode username เพื่อป้องกันปัญหาเมื่อมีอักขระพิเศษ
-      const encodedUsername = encodeURIComponent(username);
-      const apiUrl = getApiUrl(`/api/hero-section?username=${encodedUsername}`);
-      const res = await fetch(apiUrl, {
+      // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+      const res = await fetch('/api/hero-section', {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -166,10 +170,8 @@ export default function LogoEditor({ size = 36, showControls = true }) {
     
     setIsLoading(true);
     try {
-       // Encode username เพื่อป้องกันปัญหาเมื่อมีอักขระพิเศษ
-       const encodedUsername = encodeURIComponent(username);
-       const apiUrl = getApiUrl(`/api/hero-section?username=${encodedUsername}`);
-       const res = await fetch(apiUrl, {
+       // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+       const res = await fetch('/api/hero-section', {
             method: "PATCH",
             headers: { 
               "Content-Type": "application/json",
