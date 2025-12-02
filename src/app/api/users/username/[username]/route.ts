@@ -37,6 +37,12 @@ export async function GET(
 
       if (response.ok) {
         const data = await response.json();
+        // Backend ส่งกลับมาเป็น { success: true, user: {...} }
+        // Extract user object และส่งกลับ user โดยตรง
+        if (data && data.user) {
+          return NextResponse.json(data.user);
+        }
+        // ถ้าไม่มี user property ให้ส่งกลับ data โดยตรง (fallback)
         return NextResponse.json(data);
       }
 
