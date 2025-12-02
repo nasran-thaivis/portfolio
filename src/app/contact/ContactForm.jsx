@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { getApiUrl } from "../../lib/api";
 
 export default function ContactForm() {
   const [name, setName] = useState("");
