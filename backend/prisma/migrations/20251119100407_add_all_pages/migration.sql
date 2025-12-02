@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE `projects` (
+CREATE TABLE IF NOT EXISTS `projects` (
     `id` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL,
     `description` TEXT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE `projects` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `reviews` (
+CREATE TABLE IF NOT EXISTS `reviews` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `rating` INTEGER NOT NULL DEFAULT 5,
@@ -26,7 +26,7 @@ CREATE TABLE `reviews` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `hero_sections` (
+CREATE TABLE IF NOT EXISTS `hero_sections` (
     `id` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL DEFAULT 'Welcome',
     `description` VARCHAR(191) NULL DEFAULT 'This is My First Project.',
@@ -39,7 +39,7 @@ CREATE TABLE `hero_sections` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `about_sections` (
+CREATE TABLE IF NOT EXISTS `about_sections` (
     `id` VARCHAR(191) NOT NULL,
     `title` VARCHAR(191) NOT NULL DEFAULT 'About Me',
     `description` TEXT NULL,
