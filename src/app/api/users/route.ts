@@ -46,7 +46,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, name, action } = body;
+    const { email, password, name, username, action } = body;
 
     // If action is "login", verify credentials
     if (action === "login") {
@@ -82,10 +82,15 @@ export async function POST(request: Request) {
     const users = readUsers();
 
     // Check if email already exists
-    const existingUser = users.find((u: any) => u.email === email);
+    const existingUser = users.find((u: any) => u.email === email || (username && u.username === username));
     if (existingUser) {
       return NextResponse.json(
-        { success: false, message: "Email already exists" },
+        { 
+          success: false, 
+          message: existingUser.email === email 
+            ? "Email already exists" 
+            : "Username already exists" 
+        },
         { status: 409 }
       );
     }
@@ -96,6 +101,7 @@ export async function POST(request: Request) {
       email,
       password, // ⚠️ In production, use bcrypt to hash password
       name,
+      username: username || email.split('@')[0], // Use username if provided, otherwise use email prefix
       createdAt: new Date().toISOString(),
     };
 

@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getApiUrl } from "../../lib/api";
 
 // === Storage Keys ===
 const STORAGE_KEYS = {
@@ -63,7 +62,8 @@ export function AuthProvider({ children }) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
         
-        response = await fetch(getApiUrl("/api/users/register"), {
+        // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+        response = await fetch("/api/users", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -206,12 +206,13 @@ export function AuthProvider({ children }) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
         
-        response = await fetch(getApiUrl("/api/users/login"), {
+        // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+        response = await fetch("/api/users", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, action: "login" }),
           signal: controller.signal,
         }).finally(() => {
           clearTimeout(timeoutId);
@@ -311,9 +312,11 @@ export function AuthProvider({ children }) {
   // === ฟังก์ชัน: Check Username Availability ===
   const checkUsernameAvailability = async (username) => {
     try {
-      const response = await fetch(getApiUrl(`/api/users/check-username/${username}`));
+      // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+      const response = await fetch(`/api/users/username/${username}`);
       const data = await response.json();
-      return data.available;
+      // ถ้ามี user อยู่แล้ว username ไม่ available
+      return !data || !data.id;
     } catch (error) {
       console.error("Failed to check username:", error);
       return false;
