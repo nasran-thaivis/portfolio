@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { getApiUrl } from "../../../lib/api";
 
 export default function ContactForm({ username }) {
   const [name, setName] = useState("");
@@ -237,8 +236,8 @@ export default function ContactForm({ username }) {
     setStatus("loading");
 
     try {
-      // ส่ง userId ใน query parameter
-      const res = await fetch(getApiUrl(`/api/contact?userId=${username}`), {
+      // ใช้ Next.js API route แทนการเรียก backend โดยตรง (แก้ปัญหา CORS)
+      const res = await fetch(`/api/contact?userId=${username}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message }),

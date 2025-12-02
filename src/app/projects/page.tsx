@@ -3,6 +3,10 @@ import Sanity from "../../lib/sanity";
 import ProjectCard from "../components/ProjectCard";
 import { PROJECTS } from "../data/projects";
 
+// Runtime configuration for Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // หน้าแสดงรายการ Projects แบบ Card Grid
 export default async function ProjectsPage() {
   // Server component: try fetching from Sanity first, otherwise fallback to local data

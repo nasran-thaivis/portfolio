@@ -1,6 +1,14 @@
-import { notFound } from "next/navigation";
+import Container from "../components/Container";
+import ReviewClient from "./ReviewClient";
 
-export default async function ReviewPage() {
-  // Block direct access - show 404
-  notFound();
+// Runtime configuration for Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export default function ReviewPage() {
+  return (
+    <Container title="Reviews">
+      <ReviewClient />
+    </Container>
+  );
 }

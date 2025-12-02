@@ -4,6 +4,10 @@ import Container from "../../components/Container";
 import Sanity from "../../../lib/sanity";
 import { PROJECTS } from "../../data/projects";
 
+// Runtime configuration for Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // หน้ารายละเอียด project ตาม slug dynamic route
 export default async function ProjectDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
