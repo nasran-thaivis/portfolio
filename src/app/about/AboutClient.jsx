@@ -151,7 +151,6 @@ export default function AboutClient() {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

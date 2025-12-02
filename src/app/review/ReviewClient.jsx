@@ -161,7 +161,7 @@ export default function ReviewClient() {
           <p className="text-gray-500">Let us know what you think about our work!</p>
         </div>
 
-      {/* === Form สำหรับเพิ่ม Review === */}
+        {/* === Form สำหรับเพิ่ม Review === */}
       <form onSubmit={handleSubmit} className="bg-zinc-800/50 border-2 border-zinc-700 rounded-2xl p-6 space-y-4 shadow-xl">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Input: ชื่อผู้รีวิว */}
@@ -291,6 +291,7 @@ export default function ReviewClient() {
             </article>
           );
         })}
+      </div>
       </div>
     </Container>
   );
