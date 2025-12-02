@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-// === คีย์สำหรับเก็บข้อมูล reviews ใน localStorage ===
-const STORAGE_KEY = "reviews_v1";
+import Container from "../components/Container";
+import { useAuth } from "../contexts/AuthContext";
 
 // === Component สำหรับแสดงดาว (Stars) ===
 function Stars({ value }) {
@@ -28,21 +27,9 @@ function Stars({ value }) {
 }
 
 export default function ReviewClient() {
-  // === State Management ===
-  // เก็บรายการ reviews ทั้งหมด
-  const [reviews, setReviews] = useState(() => {
-    // โหลดข้อมูลจาก localStorage เมื่อ component mount ครั้งแรก
-    if (typeof window === "undefined") return [];
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.warn("ReviewClient: failed to load from localStorage", error);
-      return [];
-    }
-  });
-
-  // State สำหรับ form และ UI
+  const { currentUser } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState(null);
@@ -52,17 +39,39 @@ export default function ReviewClient() {
   const [comment, setComment] = useState("");
   const [rating, setRating] = useState(5);
 
-  // === บันทึก reviews ลง localStorage ทุกครั้งที่ reviews เปลี่ยน ===
+  // ดึงข้อมูลจาก API
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
-    } catch (error) {
-      console.error("ReviewClient: failed to save to localStorage", error);
-    }
-  }, [reviews]);
+    const fetchReviews = async () => {
+      if (!currentUser?.username) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/reviews?username=${currentUser.username}`, {
+          cache: "no-store",
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setReviews(Array.isArray(data) ? data : []);
+        } else {
+          console.warn(`[ReviewClient] Failed to fetch reviews: ${res.status}`);
+          setReviews([]);
+        }
+      } catch (error) {
+        console.error("[ReviewClient] Error fetching reviews:", error);
+        setReviews([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReviews();
+  }, [currentUser]);
 
   // === ฟังก์ชันจัดการ: Submit Review ===
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSuccessMessage("");
@@ -77,37 +86,80 @@ export default function ReviewClient() {
       return;
     }
 
+    if (!currentUser?.username) {
+      setError("Please login to submit a review");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // === สร้าง review object ใหม่ ===
-    const newReview = {
-      id: Date.now(), // ใช้ timestamp เป็น unique ID
-      reviewerName: name.trim(),
-      rating: Number(rating),
-      comment: comment.trim(),
-      timestamp: new Date().toISOString(), // เก็บวันที่และเวลา
-    };
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
 
-    // === เพิ่ม review ใหม่เข้าไปใน state (แสดงผลทันที) ===
-    setReviews((prev) => [newReview, ...prev]); // เพิ่มใหม่ไว้ด้านบนสุด
+      const body = {
+        name: name.trim(),
+        rating: Number(rating),
+        comment: comment.trim(),
+        username: currentUser.username,
+      };
 
-    // === Clear form และแสดง success message ===
-    setName("");
-    setComment("");
-    setRating(5);
-    setSuccessMessage("Review added — thank you!");
-    setIsSubmitting(false);
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
 
-    // === ซ่อน success message หลังจาก 3 วินาที ===
-    setTimeout(() => setSuccessMessage(""), 3000);
+      if (res.ok) {
+        const newReview = await res.json();
+        setReviews((prev) => [newReview, ...prev]);
+        setName("");
+        setComment("");
+        setRating(5);
+        setSuccessMessage("Review added — thank you!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.error || "Failed to add review");
+      }
+    } catch (error) {
+      console.error("[ReviewClient] Error submitting review:", error);
+      setError("Failed to submit review. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <Container title="Reviews">
+        <div className="text-center py-20 animate-pulse">
+          <p className="text-xl text-gray-300">กำลังโหลดข้อมูล...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <Container title="Reviews">
+        <div className="text-center py-20 text-gray-500">
+          <p className="text-xl mb-4">กรุณาเข้าสู่ระบบเพื่อดูรีวิว</p>
+        </div>
+      </Container>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-300 mb-2">Share Your Experience</h2>
-        <p className="text-gray-500">Let us know what you think about our work!</p>
-      </div>
+    <Container title="Reviews">
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-300 mb-2">Share Your Experience</h2>
+          <p className="text-gray-500">Let us know what you think about our work!</p>
+        </div>
 
       {/* === Form สำหรับเพิ่ม Review === */}
       <form onSubmit={handleSubmit} className="bg-zinc-800/50 border-2 border-zinc-700 rounded-2xl p-6 space-y-4 shadow-xl">
@@ -185,9 +237,9 @@ export default function ReviewClient() {
         {/* === Loop แสดง Reviews แต่ละอันเป็น Box === */}
         {reviews.map((r) => {
           const reviewRating = Math.max(0, Math.min(5, Number(r.rating || 0)));
-          const reviewerName = r.reviewerName || "Anonymous";
+          const reviewerName = r.name || r.reviewerName || "Anonymous";
           const reviewComment = r.comment || r.text || "";
-          const reviewDate = r.timestamp || r.createdAt;
+          const reviewDate = r.createdAt || r.timestamp;
 
           // Format วันที่ก่อน render (แก้ error impure function)
           let formattedDate = "Just now";
@@ -240,6 +292,6 @@ export default function ReviewClient() {
           );
         })}
       </div>
-    </div>
+    </Container>
   );
 }

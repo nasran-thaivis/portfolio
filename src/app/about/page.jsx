@@ -1,6 +1,14 @@
-import { notFound } from "next/navigation";
+import Container from "../components/Container";
+import AboutClient from "./AboutClient";
 
-export default async function AboutPage() {
-  // Block direct access - show 404
-  notFound();
+// Runtime configuration for Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export default function AboutPage() {
+  return (
+    <Container title="About">
+      <AboutClient />
+    </Container>
+  );
 }

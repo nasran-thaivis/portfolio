@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Container from "../components/Container";
 import { getSignedImageUrl } from "../../lib/imageUtils";
-
-// === คีย์สำหรับอ่านข้อมูลจาก localStorage ===
-const STORAGE_KEY = "admin_about_content";
+import { useAuth } from "../contexts/AuthContext";
 
 // === Component สำหรับแสดงรูปภาพพร้อม proxy URL ===
 const ProfileImageWithSignedUrl = ({ src, alt, className }) => {
@@ -34,29 +31,72 @@ I'm passionate about creating modern web applications and providing excellent IT
   skills: "Next.js, React, Tailwind CSS, WordPress, LAN/Hardware, Microsoft Office",
 };
 
-// === Helper function: โหลดข้อมูลจาก localStorage ===
-function loadDataFromStorage() {
-  try {
-    if (typeof window === "undefined") return DEFAULT_DATA;
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.warn("AboutClient: failed to load data", error);
-  }
-  return DEFAULT_DATA;
-}
-
 // === Component หน้า About (Client-side) ===
-// อ่านข้อมูลจาก Admin Dashboard ใน localStorage
+// ดึงข้อมูลจาก API
 export default function AboutClient() {
-  // State: เก็บข้อมูลหน้า About (ใช้ lazy initialization เพื่อโหลดจาก localStorage)
-  const [data, setData] = useState(loadDataFromStorage);
+  const { currentUser } = useAuth();
+  const [data, setData] = useState(DEFAULT_DATA);
+  const [loading, setLoading] = useState(true);
+
+  // ดึงข้อมูลจาก API
+  useEffect(() => {
+    const fetchAboutData = async () => {
+      if (!currentUser?.username) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // ใช้ relative URL สำหรับ client-side
+        const res = await fetch(`/api/about-section?username=${currentUser.username}`, {
+          cache: "no-store",
+        });
+        
+        if (res.ok) {
+          const aboutData = await res.json();
+          if (aboutData) {
+            // แปลง imageUrl เป็น signed URL
+            const formattedData = {
+              ...aboutData,
+              imageUrl: aboutData.imageUrl ? getSignedImageUrl(aboutData.imageUrl) : aboutData.imageUrl,
+              title: aboutData.title || DEFAULT_DATA.title,
+              description: aboutData.description || DEFAULT_DATA.description,
+              content: aboutData.description || DEFAULT_DATA.content,
+              skills: aboutData.skills || DEFAULT_DATA.skills,
+            };
+            setData(formattedData);
+          }
+        } else {
+          console.warn(`[AboutClient] Failed to fetch about data: ${res.status}`);
+        }
+      } catch (error) {
+        console.error("[AboutClient] Error fetching about data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAboutData();
+  }, [currentUser]);
+
+  if (loading) {
+    return (
+      <div className="text-center py-20 animate-pulse">
+        <p className="text-xl text-gray-300">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="text-center py-20 text-gray-500">
+        <p className="text-xl mb-4">กรุณาเข้าสู่ระบบเพื่อดูข้อมูล</p>
+      </div>
+    );
+  }
 
   return (
-    <Container title={data.title}>
-      <div className="space-y-8">
+    <div className="space-y-8">
         {/* Hero Section with Description */}
         {data.description && (
           <div className="text-center py-6">
@@ -112,7 +152,7 @@ export default function AboutClient() {
           </div>
         )}
       </div>
-    </Container>
+    </div>
   );
 }
 

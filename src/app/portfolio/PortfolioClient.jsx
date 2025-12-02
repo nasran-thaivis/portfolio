@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Container from "../components/Container";
 import { getSignedImageUrl } from "../../lib/imageUtils";
-
-// === คีย์สำหรับเก็บข้อมูลใน localStorage ===
-const STORAGE_KEY = "portfolio_items_v1";
+import { useAuth } from "../contexts/AuthContext";
 
 // === Component สำหรับแสดงรูปภาพพร้อม proxy URL ===
 const ImageWithSignedUrl = ({ src, alt, className }) => {
@@ -143,40 +141,74 @@ const PortfolioForm = ({ currentItem, onSubmit, onCancel }) => {
 
 // === Component หลักของหน้า Portfolio ===
 export default function PortfolioClient() {
-  // State: เก็บรายการผลงานทั้งหมด
-  const [items, setItems] = useState(() => {
-    // โหลดข้อมูลจาก localStorage หรือใช้ข้อมูลเริ่มต้น
-    if (typeof window === "undefined") return initialItems;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : initialItems;
-    } catch (error) {
-      console.warn("PortfolioClient: failed to load from localStorage", error);
-      return initialItems;
-    }
-  });
-
-  // State: แสดง/ซ่อนฟอร์ม
+  const { currentUser } = useAuth();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  
-  // State: เก็บ item ที่กำลังแก้ไข (null = Add, Object = Edit)
   const [currentItem, setCurrentItem] = useState(null);
 
-  // บันทึกข้อมูลลง localStorage ทุกครั้งที่ items เปลี่ยน
+  // ดึงข้อมูลจาก API
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch (error) {
-      console.error("PortfolioClient: failed to save to localStorage", error);
-    }
-  }, [items]);
+    const fetchProjects = async () => {
+      if (!currentUser?.username) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/projects?username=${currentUser.username}`, {
+          cache: "no-store",
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          const projects = Array.isArray(data) ? data : [];
+          // แปลง imageUrl เป็น signed URL
+          const projectsWithUrls = projects.map(project => ({
+            ...project,
+            imageUrl: project.imageUrl ? getSignedImageUrl(project.imageUrl) : project.imageUrl,
+          }));
+          setItems(projectsWithUrls);
+        } else {
+          console.warn(`[PortfolioClient] Failed to fetch projects: ${res.status}`);
+          setItems([]);
+        }
+      } catch (error) {
+        console.error("[PortfolioClient] Error fetching projects:", error);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [currentUser]);
 
   // === ฟังก์ชันจัดการ: ลบ Project ===
-  const handleDelete = (idToDelete) => {
+  const handleDelete = async (idToDelete) => {
     if (typeof window !== "undefined" && !confirm("Are you sure you want to delete this project?")) {
       return;
     }
-    setItems((prev) => prev.filter((item) => item.id !== idToDelete));
+
+    try {
+      const headers = {};
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      const res = await fetch(`/api/projects/${idToDelete}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      if (res.ok) {
+        setItems((prev) => prev.filter((item) => item.id !== idToDelete));
+      } else {
+        alert("❌ Failed to delete project");
+      }
+    } catch (error) {
+      console.error("[PortfolioClient] Error deleting project:", error);
+      alert("❌ Error deleting project");
+    }
   };
 
   // === ฟังก์ชันจัดการ: เปิดฟอร์มแก้ไข ===
@@ -198,23 +230,62 @@ export default function PortfolioClient() {
   };
 
   // === ฟังก์ชันจัดการ: บันทึกข้อมูลจากฟอร์ม ===
-  const handleSubmitForm = (formData) => {
-    if (currentItem) {
-      // โหมดแก้ไข: อัปเดต item ที่มี id ตรงกัน
-      setItems((prev) =>
-        prev.map((item) =>
-          item.id === currentItem.id ? { ...item, ...formData } : item
-        )
-      );
-    } else {
-      // โหมดเพิ่มใหม่: เพิ่ม item ใหม่พร้อม id ใหม่
-      setItems((prev) => [
-        ...prev,
-        { ...formData, id: Date.now() }, // ใช้ timestamp เป็น ID
-      ]);
+  const handleSubmitForm = async (formData) => {
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
+      if (currentUser?.username) headers['x-username'] = currentUser.username;
+
+      if (currentItem) {
+        // โหมดแก้ไข: อัปเดต project
+        const res = await fetch(`/api/projects/${currentItem.id}`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          const updatedProject = await res.json();
+          setItems((prev) =>
+            prev.map((item) =>
+              item.id === currentItem.id 
+                ? { ...updatedProject, imageUrl: updatedProject.imageUrl ? getSignedImageUrl(updatedProject.imageUrl) : updatedProject.imageUrl }
+                : item
+            )
+          );
+          alert("✅ Project updated successfully!");
+        } else {
+          alert("❌ Failed to update project");
+          return;
+        }
+      } else {
+        // โหมดเพิ่มใหม่: สร้าง project ใหม่
+        const res = await fetch("/api/projects", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(formData),
+        });
+
+        if (res.ok) {
+          const newProject = await res.json();
+          setItems((prev) => [
+            ...prev,
+            { ...newProject, imageUrl: newProject.imageUrl ? getSignedImageUrl(newProject.imageUrl) : newProject.imageUrl },
+          ]);
+          alert("✅ Project added successfully!");
+        } else {
+          alert("❌ Failed to add project");
+          return;
+        }
+      }
+      setShowForm(false);
+      setCurrentItem(null);
+    } catch (error) {
+      console.error("[PortfolioClient] Error saving project:", error);
+      alert("❌ Error saving project");
     }
-    setShowForm(false);
-    setCurrentItem(null);
   };
 
   // === ฟังก์ชันช่วย: แบ่ง items ออกเป็นกลุ่มๆ กลุ่มละ 2 items ===
@@ -235,6 +306,26 @@ export default function PortfolioClient() {
   const columns = groupItemsIntoColumns(items);
 
   // === UI Render ===
+  if (loading) {
+    return (
+      <Container title="Portfolio">
+        <div className="text-center py-20 animate-pulse">
+          <p className="text-xl text-gray-300">กำลังโหลดข้อมูล...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <Container title="Portfolio">
+        <div className="text-center py-20 text-gray-500">
+          <p className="text-xl mb-4">กรุณาเข้าสู่ระบบเพื่อดูผลงาน</p>
+        </div>
+      </Container>
+    );
+  }
+
   return (
     <Container title="Portfolio">
       <div className="space-y-8">
