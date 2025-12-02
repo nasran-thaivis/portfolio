@@ -106,13 +106,13 @@ export async function GET(
         fetchError.name === 'AbortError' ||
         (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))
       ) {
-        console.warn(`[API Proxy] Backend unavailable for /api/users/username/${username}, returning 404`);
-        
-        // Return 404 when backend is unavailable (treat as user not found)
-        return NextResponse.json(
-          { success: false, message: `User with username '${username}' not found` },
-          { status: 404 }
+        console.warn(
+          `[API Proxy] Backend unavailable for /api/users/username/${username}, returning fallback user`
         );
+
+        // ✅ Fallback: still return a minimal user object so public pages don't 404
+        const fallbackUser = { id: null, username, fallback: true };
+        return NextResponse.json(fallbackUser, { status: 200 });
       }
 
       // For any other fetch errors, treat as user not found
@@ -123,13 +123,11 @@ export async function GET(
       );
     }
   } catch (error: any) {
-    // Catch-all error handler - treat as user not found instead of 500
+    // Catch-all error handler - if something unexpected happens, return a fallback user
     console.error(`[API Proxy] Error in GET /api/users/username/[username]:`, error);
     const errorUsername = username || 'unknown';
-    return NextResponse.json(
-      { success: false, message: `User with username '${errorUsername}' not found` },
-      { status: 404 }
-    );
+    const fallbackUser = { id: null, username: errorUsername, fallback: true };
+    return NextResponse.json(fallbackUser, { status: 200 });
   }
 }
 

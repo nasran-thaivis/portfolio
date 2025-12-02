@@ -79,13 +79,13 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
   // ดึงข้อมูล user
   const user = await getUserByUsername(username);
   
-  // ถ้าไม่พบ user ให้แสดง 404
-  if (!user) {
+  // ถ้าไม่พบ user และไม่ใช่ fallback user ให้แสดง 404
+  if (!user || (!user.id && !user.fallback)) {
     console.warn(`[UserProfile] User ${username} not found, showing 404`);
     notFound();
   }
   
-  // ดึงข้อมูล Hero Section
+  // ดึงข้อมูล Hero Section (ถ้าเป็น fallback user อาจจะดึงไม่ได้ แต่ไม่เป็นไร)
   const heroData = await getHeroData(username);
 
   // ค่าเริ่มต้น - use username if user not found

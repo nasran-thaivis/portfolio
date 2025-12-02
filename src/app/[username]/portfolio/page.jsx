@@ -52,8 +52,8 @@ export default async function PortfolioPage({ params }) {
   // ตรวจสอบว่า user มีอยู่จริง
   const user = await getUserByUsername(username);
 
-  // ถ้าไม่พบ user ให้แสดง 404
-  if (!user) {
+  // ถ้าไม่พบ user และไม่ใช่ fallback user ให้แสดง 404
+  if (!user || (!user.id && !user.fallback)) {
     console.warn(`[PortfolioPage] User ${username} not found, showing 404`);
     notFound();
   }

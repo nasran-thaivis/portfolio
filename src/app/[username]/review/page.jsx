@@ -70,12 +70,13 @@ export default async function ReviewPage({ params }) {
   // ตรวจสอบว่า user มีอยู่จริง
   const user = await getUserByUsername(username);
   
-  // ถ้าไม่พบ user ให้แสดง 404
-  if (!user) {
+  // ถ้าไม่พบ user และไม่ใช่ fallback user ให้แสดง 404
+  if (!user || (!user.id && !user.fallback)) {
     console.warn(`[ReviewPage] User ${username} not found, showing 404`);
     notFound();
   }
   
+  // ดึงข้อมูล reviews (ถ้าเป็น fallback user อาจจะดึงไม่ได้ แต่ไม่เป็นไร)
   const reviews = await getReviews(username);
 
   return (

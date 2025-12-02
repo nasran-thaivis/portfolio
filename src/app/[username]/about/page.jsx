@@ -75,13 +75,13 @@ export default async function AboutPage({ params }) {
   // 1. ตรวจสอบว่า user มีอยู่จริงไหม
   const user = await getUserByUsername(username);
 
-  // ถ้าไม่พบ user ให้ดีดไปหน้า 404 ทันที
-  if (!user) {
+  // ถ้าไม่พบ user และไม่ใช่ fallback user ให้ดีดไปหน้า 404 ทันที
+  if (!user || (!user.id && !user.fallback)) {
     console.warn(`[AboutPage] User ${username} not found, triggering 404`);
     notFound();
   }
 
-  // 2. ถ้าเจอ User แล้ว ค่อยดึงข้อมูล About
+  // 2. ถ้าเจอ User แล้ว ค่อยดึงข้อมูล About (ถ้าเป็น fallback user อาจจะดึงไม่ได้ แต่ไม่เป็นไร)
   const data = await getAboutData(username);
 
   // ค่า Default (กรณี User มีตัวตน แต่ยังไม่ได้สร้างข้อมูล About)

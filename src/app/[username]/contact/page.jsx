@@ -47,13 +47,13 @@ export default async function ContactPage({ params }) {
   // ตรวจสอบว่า user มีอยู่จริง
   const user = await getUserByUsername(username);
   
-  // ถ้าไม่พบ user ให้แสดง 404
-  if (!user) {
+  // ถ้าไม่พบ user และไม่ใช่ fallback user ให้แสดง 404
+  if (!user || (!user.id && !user.fallback)) {
     console.warn(`[ContactPage] User ${username} not found, showing 404`);
     notFound();
   }
   
-  // Use user email
+  // Use user email (ถ้าเป็น fallback user ใช้ default email)
   const displayEmail = user?.email || `${username}@example.com`;
 
   return (
