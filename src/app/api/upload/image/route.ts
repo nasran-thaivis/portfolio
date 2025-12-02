@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Runtime configuration for Vercel
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const TIMEOUT_MS = 30000; // 30 seconds for file uploads
 
