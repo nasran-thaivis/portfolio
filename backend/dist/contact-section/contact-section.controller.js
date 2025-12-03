@@ -22,9 +22,22 @@ let ContactSectionController = class ContactSectionController {
         this.contactSectionService = contactSectionService;
     }
     async findOne(req) {
-        const userId = req.user?.id;
-        const username = req.query.username;
-        return this.contactSectionService.findOne(userId, username);
+        try {
+            const userId = req.user?.id;
+            const username = req.query.username;
+            return await this.contactSectionService.findOne(userId, username);
+        }
+        catch (error) {
+            console.error('[ContactSectionController] Error in findOne:', error);
+            if (error instanceof common_1.BadRequestException ||
+                error instanceof common_1.InternalServerErrorException) {
+                throw error;
+            }
+            if (error.code && error.code.startsWith('P')) {
+                throw new common_1.BadRequestException(`Database error: ${error.message || error}`);
+            }
+            throw new common_1.InternalServerErrorException(`Failed to get contact section: ${error.message || error}`);
+        }
     }
     async update(user, req, createContactSectionDto) {
         try {

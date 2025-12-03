@@ -19,48 +19,77 @@ let ContactSectionService = class ContactSectionService {
         this.usersService = usersService;
     }
     async findOne(userId, username) {
-        let contact;
-        if (userId) {
-            contact = await this.prisma.contactSection.findUnique({
-                where: { userId },
-            });
-        }
-        else if (username) {
-            const user = await this.prisma.user.findUnique({
-                where: { username },
-                include: { contactSection: true },
-            });
-            contact = user?.contactSection;
-        }
-        let result;
-        if (!contact) {
-            if (!userId && username) {
+        try {
+            let contact;
+            if (userId) {
+                contact = await this.prisma.contactSection.findUnique({
+                    where: { userId },
+                });
+            }
+            else if (username) {
                 const user = await this.prisma.user.findUnique({
                     where: { username },
+                    include: { contactSection: true },
                 });
-                if (user)
-                    userId = user.id;
+                contact = user?.contactSection;
             }
-            if (userId) {
-                result = await this.prisma.contactSection.create({
-                    data: {
-                        userId,
+            let result;
+            if (!contact) {
+                if (!userId && username) {
+                    const user = await this.prisma.user.findUnique({
+                        where: { username },
+                    });
+                    if (user)
+                        userId = user.id;
+                }
+                if (userId) {
+                    try {
+                        result = await this.prisma.contactSection.create({
+                            data: {
+                                userId,
+                                phone: '062-209-5297',
+                                email: null,
+                            },
+                        });
+                    }
+                    catch (createError) {
+                        if (createError.code === 'P2002') {
+                            contact = await this.prisma.contactSection.findUnique({
+                                where: { userId },
+                            });
+                            result = contact;
+                        }
+                        else {
+                            throw createError;
+                        }
+                    }
+                }
+                else {
+                    return {
                         phone: '062-209-5297',
                         email: null,
-                    },
-                });
+                    };
+                }
             }
             else {
-                return {
-                    phone: '062-209-5297',
-                    email: null,
-                };
+                result = contact;
             }
+            return result;
         }
-        else {
-            result = contact;
+        catch (error) {
+            console.error('[ContactSectionService] Error in findOne:', error);
+            if (error instanceof common_1.NotFoundException || error instanceof common_1.BadRequestException) {
+                throw error;
+            }
+            if (error.code && error.code.startsWith('P')) {
+                throw new common_1.BadRequestException(`Database error: ${error.message || error}`);
+            }
+            console.warn('[ContactSectionService] Returning default contact data due to error');
+            return {
+                phone: '062-209-5297',
+                email: null,
+            };
         }
-        return result;
     }
     async update(userIdOrUsername, createContactSectionDto) {
         try {

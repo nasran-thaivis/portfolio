@@ -5,17 +5,17 @@ export declare class ContactSectionController {
     constructor(contactSectionService: ContactSectionService);
     findOne(req: any): Promise<any>;
     update(user: any, req: any, createContactSectionDto: CreateContactSectionDto): Promise<{
-        email: string | null;
         id: string;
-        updatedAt: Date;
         userId: string;
         phone: string | null;
+        email: string | null;
+        updatedAt: Date;
     }>;
     create(user: any, req: any, createContactSectionDto: CreateContactSectionDto): Promise<{
-        email: string | null;
         id: string;
-        updatedAt: Date;
         userId: string;
         phone: string | null;
+        email: string | null;
+        updatedAt: Date;
     }>;
 }

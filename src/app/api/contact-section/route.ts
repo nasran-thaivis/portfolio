@@ -45,8 +45,19 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(data);
       }
 
-      // If backend returns error, fall back to default data
-      throw new Error(`Backend error: ${response.status}`);
+      // If backend returns error, log as warning and return default data
+      const status = response.status;
+      console.warn(`[API Proxy] Backend returned ${status} for /api/contact-section, returning default data`);
+      
+      // Try to get error message from response
+      try {
+        const errorData = await response.json();
+        console.warn(`[API Proxy] Backend error details:`, errorData);
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+      
+      return NextResponse.json(DEFAULT_CONTACT_DATA);
     } catch (fetchError: any) {
       // Network error or timeout - backend unavailable
       if (
@@ -59,11 +70,13 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(DEFAULT_CONTACT_DATA);
       }
 
-      throw fetchError;
+      // For other errors (like backend 500), log as warning and return default data
+      console.warn(`[API Proxy] Error fetching contact-section: ${fetchError.message}, returning default data`);
+      return NextResponse.json(DEFAULT_CONTACT_DATA);
     }
   } catch (error: any) {
-    console.error("GET /api/contact-section error", error);
-    // Return default data even on error
+    // This catch block should rarely be hit now, but keep as safety net
+    console.warn("GET /api/contact-section error (fallback):", error.message || error);
     return NextResponse.json(DEFAULT_CONTACT_DATA);
   }
 }

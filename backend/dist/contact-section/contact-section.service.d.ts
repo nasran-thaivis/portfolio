@@ -7,10 +7,10 @@ export declare class ContactSectionService {
     constructor(prisma: PrismaService, usersService: UsersService);
     findOne(userId?: string, username?: string): Promise<any>;
     update(userIdOrUsername: string, createContactSectionDto: CreateContactSectionDto): Promise<{
-        email: string | null;
         id: string;
-        updatedAt: Date;
         userId: string;
         phone: string | null;
+        email: string | null;
+        updatedAt: Date;
     }>;
 }

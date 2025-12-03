@@ -9,9 +9,27 @@ export class ContactSectionController {
 
   @Get()
   async findOne(@Req() req: any) {
-    const userId = req.user?.id;
-    const username = req.query.username as string;
-    return this.contactSectionService.findOne(userId, username);
+    try {
+      const userId = req.user?.id;
+      const username = req.query.username as string;
+      return await this.contactSectionService.findOne(userId, username);
+    } catch (error: any) {
+      console.error('[ContactSectionController] Error in findOne:', error);
+      
+      // Re-throw NestJS exceptions as-is
+      if (error instanceof BadRequestException || 
+          error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      
+      // For Prisma errors, wrap in BadRequestException
+      if (error.code && error.code.startsWith('P')) {
+        throw new BadRequestException(`Database error: ${error.message || error}`);
+      }
+      
+      // For other errors, wrap in InternalServerErrorException
+      throw new InternalServerErrorException(`Failed to get contact section: ${error.message || error}`);
+    }
   }
 
   @Patch()
