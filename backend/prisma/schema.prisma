@@ -22,6 +22,7 @@ model User {
   // Relations
   heroSection    HeroSection?
   aboutSection   AboutSection?
+  contactSection ContactSection?
   projects       Project[]
   reviews        Review[]
   contactRequests ContactRequest[]
@@ -108,4 +109,19 @@ model AboutSection {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("about_sections") //ชื่อตารางในฐานข้อมูล
+}
+
+// --- 5. สำหรับหน้า Contact (เก็บข้อมูลติดต่อ) ---
+// แต่ละ user จะมี ContactSection ของตัวเอง
+model ContactSection {
+  id          String   @id @default(uuid()) // รหัสข้อมูลติดต่อ
+  phone       String?  // เบอร์โทรศัพท์
+  email       String?  // อีเมลติดต่อ (อาจจะต่างจาก email ใน User)
+  userId      String   @unique // Foreign key to User (one-to-one)
+  updatedAt   DateTime @updatedAt //วันที่แก้ไข อัตโนมัติ
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("contact_sections") //ชื่อตารางในฐานข้อมูล
 }

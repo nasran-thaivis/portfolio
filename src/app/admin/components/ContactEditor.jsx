@@ -1,39 +1,118 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const STORAGE_KEY = "admin_contact_content";
+import { useAuth } from "../../contexts/AuthContext";
 
 const DEFAULT_DATA = {
   phone: "062-209-5297",
-  email: "Nasran@thaivis.com",
+  email: null,
 };
 
 export default function ContactEditor() {
+  const { currentUser } = useAuth();
   const [contactData, setContactData] = useState(DEFAULT_DATA);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
+  // Load initial data from API
   useEffect(() => {
+    const fetchData = async () => {
+      if (!currentUser) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const username = currentUser.username || currentUser.id;
+        const url = `/api/contact-section?username=${encodeURIComponent(username)}`;
+
+        const res = await fetch(url, {
+          cache: "no-store",
+        });
+        
+        if (!res.ok) {
+          console.warn("[ContactEditor] Failed to fetch contact section, using default data");
+          setIsLoading(false);
+          return;
+        }
+        
+        const data = await res.json();
+        if (data) {
+          setContactData({
+            phone: data.phone || DEFAULT_DATA.phone,
+            email: data.email || null,
+          });
+        }
+      } catch (error) {
+        console.error("[ContactEditor] Failed to load data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentUser]);
+
+  const handleSave = async () => {
+    if (!currentUser) {
+      alert("❌ กรุณา Login ก่อนบันทึกข้อมูล");
+      return;
+    }
+
+    setIsSaving(true);
+    setSuccessMessage("");
+
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setContactData(JSON.parse(stored));
+      const dataToSave = {
+        phone: contactData.phone || null,
+        email: contactData.email || null,
+      };
+
+      const headers = {
+        "Content-Type": "application/json",
+      } as Record<string, string>;
+
+      // Add authentication headers
+      if (currentUser?.id) {
+        headers['x-user-id'] = currentUser.id;
+      }
+      if (currentUser?.username && currentUser.username !== currentUser.id) {
+        headers['x-username'] = currentUser.username;
+      }
+
+      const res = await fetch("/api/contact-section", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(dataToSave),
+      });
+      
+      if (res.ok) {
+        setSuccessMessage("✅ Contact info saved successfully!");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || `Error updating (${res.status})`;
+        console.error("Server Response Error:", errorMessage);
+        alert(`❌ ${errorMessage}`);
       }
     } catch (error) {
-      console.error("Failed to load Contact data", error);
-    }
-  }, []);
-
-  const handleSave = () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(contactData));
-      setSuccessMessage("✅ Contact info saved successfully!");
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error) {
-      console.error("Failed to save Contact data", error);
-      alert("Failed to save Contact data");
+      console.error("[ContactEditor] Save error:", error);
+      alert(`❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้: ${error.message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">⏳</div>
+          <p className="text-gray-600">Loading contact information...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -82,9 +161,16 @@ export default function ContactEditor() {
 
       <button
         onClick={handleSave}
-        className="mt-6 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] hover:opacity-90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-2xl transform hover:scale-105"
+        disabled={isSaving}
+        className="mt-6 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] hover:opacity-90 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-2xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
       >
-        💾 Save Contact Info
+        {isSaving ? (
+          <>
+            <span className="animate-spin">⏳</span> Saving...
+          </>
+        ) : (
+          <>💾 Save Contact Info</>
+        )}
       </button>
     </div>
   );

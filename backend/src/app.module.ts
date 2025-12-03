@@ -8,11 +8,12 @@ import { ProjectsModule } from './projects/projects.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { HeroSectionModule } from './hero-section/hero-section.module';
 import { AboutSectionModule } from './about-section/about-section.module';
+import { ContactSectionModule } from './contact-section/contact-section.module';
 import { UploadModule } from './upload/upload.module';
 import { AuthMiddleware } from './common/middleware/auth.middleware';
 
 @Module({
-  imports: [PrismaModule, UsersModule, ContactModule, ProjectsModule, ReviewsModule, HeroSectionModule, AboutSectionModule, UploadModule],
+  imports: [PrismaModule, UsersModule, ContactModule, ProjectsModule, ReviewsModule, HeroSectionModule, AboutSectionModule, ContactSectionModule, UploadModule],
   controllers: [AppController],
   providers: [AppService, AuthMiddleware],
 })
