@@ -11,6 +11,14 @@ export const dynamic = 'force-dynamic';
 async function getUserByUsername(username) {
   try {
     const baseUrl = getBaseUrl();
+    
+    // Validate baseUrl to prevent invalid URLs
+    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
+      console.error(`[AboutPage] Invalid baseUrl detected: ${baseUrl}`);
+      console.warn(`[AboutPage] Using fallback user due to invalid baseUrl`);
+      return { id: null, username, fallback: true };
+    }
+    
     // เรียกไปที่ API Route ของ Next.js (ซึ่งจะไปเรียก Backend จริงอีกที)
     const url = `${baseUrl}/api/users/username/${username}`;
     console.log(`[AboutPage] Fetching user: ${url}`);
@@ -19,12 +27,27 @@ async function getUserByUsername(username) {
       cache: "no-store",
     });
     
+    // If response is not ok, check if it's a real 404 (user not found) or backend error
     if (!res.ok) {
-      console.error(`[AboutPage] User not found: ${username}, status: ${res.status}`);
-      return null;
+      // If status is 404, it means user truly doesn't exist in database
+      if (res.status === 404) {
+        console.error(`[AboutPage] User not found in database: ${username}, status: ${res.status}`);
+        return null; // Return null to trigger 404
+      }
+      
+      // For 5xx errors or other errors, backend might be unavailable
+      // Return fallback user to allow page to render
+      console.warn(`[AboutPage] Backend error (${res.status}) for ${username}, using fallback user`);
+      return { id: null, username, fallback: true };
     }
     
     const data = await res.json();
+    
+    // Check if this is a fallback user (from API route when backend unavailable)
+    if (data && data.fallback === true) {
+      console.log(`[AboutPage] Using fallback user for ${username} (backend unavailable)`);
+      return data;
+    }
     
     // ✅ แก้ไข: เช็คแค่ว่ามีข้อมูล ID หรือ Username ส่งกลับมาไหม
     // Backend ส่งมาเป็น { id: "...", username: "...", ... } เลยเช็คตรงๆ ได้เลย
@@ -34,11 +57,15 @@ async function getUserByUsername(username) {
     }
     
     console.error(`[AboutPage] Invalid response format for user: ${username}`, data);
-    return null;
+    // Return fallback user instead of null to prevent 404
+    console.warn(`[AboutPage] Using fallback user due to invalid response format`);
+    return { id: null, username, fallback: true };
 
   } catch (error) {
     console.error(`[AboutPage] Error loading user ${username}:`, error);
-    return null;
+    // Network error or timeout - return fallback user
+    console.warn(`[AboutPage] Backend timeout/unavailable, using fallback user for ${username}`);
+    return { id: null, username, fallback: true };
   }
 }
 
@@ -76,9 +103,15 @@ export default async function AboutPage({ params }) {
   const user = await getUserByUsername(username);
 
   // ถ้าไม่พบ user และไม่ใช่ fallback user ให้ดีดไปหน้า 404 ทันที
+  // (fallback user means backend unavailable, so we show page anyway)
   if (!user || (!user.id && !user.fallback)) {
-    console.warn(`[AboutPage] User ${username} not found, triggering 404`);
+    console.warn(`[AboutPage] User ${username} not found in database, triggering 404`);
     notFound();
+  }
+  
+  // Log if using fallback user
+  if (user?.fallback) {
+    console.log(`[AboutPage] Using fallback user for ${username} - backend may be unavailable`);
   }
 
   // 2. ถ้าเจอ User แล้ว ค่อยดึงข้อมูล About (ถ้าเป็น fallback user อาจจะดึงไม่ได้ แต่ไม่เป็นไร)

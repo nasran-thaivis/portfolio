@@ -11,6 +11,14 @@ export const dynamic = 'force-dynamic';
 async function getUserByUsername(username) {
   try {
     const baseUrl = getBaseUrl();
+    
+    // Validate baseUrl to prevent invalid URLs
+    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
+      console.error(`[ContactPage] Invalid baseUrl detected: ${baseUrl}`);
+      console.warn(`[ContactPage] Using fallback user due to invalid baseUrl`);
+      return { id: null, username, fallback: true };
+    }
+    
     const url = `${baseUrl}/api/users/username/${username}`;
     console.log(`[ContactPage] Fetching user: ${url}`);
 
@@ -18,12 +26,27 @@ async function getUserByUsername(username) {
       cache: "no-store",
     });
 
+    // If response is not ok, check if it's a real 404 (user not found) or backend error
     if (!res.ok) {
-      console.error(`[ContactPage] User not found: ${username}, status: ${res.status}`);
-      return null;
+      // If status is 404, it means user truly doesn't exist in database
+      if (res.status === 404) {
+        console.error(`[ContactPage] User not found in database: ${username}, status: ${res.status}`);
+        return null; // Return null to trigger 404
+      }
+      
+      // For 5xx errors or other errors, backend might be unavailable
+      // Return fallback user to allow page to render
+      console.warn(`[ContactPage] Backend error (${res.status}) for ${username}, using fallback user`);
+      return { id: null, username, fallback: true };
     }
 
     const data = await res.json();
+
+    // Check if this is a fallback user (from API route when backend unavailable)
+    if (data && data.fallback === true) {
+      console.log(`[ContactPage] Using fallback user for ${username} (backend unavailable)`);
+      return data;
+    }
 
     // ✅ เช็คจากรูปแบบข้อมูลจริงที่ Backend ส่งกลับมา (raw user object)
     // ตัวอย่าง: { id: '...', username: '...', ... }
@@ -33,10 +56,14 @@ async function getUserByUsername(username) {
     }
 
     console.error(`[ContactPage] Invalid response format for user: ${username}`, data);
-    return null;
+    // Return fallback user instead of null to prevent 404
+    console.warn(`[ContactPage] Using fallback user due to invalid response format`);
+    return { id: null, username, fallback: true };
   } catch (error) {
     console.error(`[ContactPage] Error loading user ${username}:`, error);
-    return null;
+    // Network error or timeout - return fallback user
+    console.warn(`[ContactPage] Backend timeout/unavailable, using fallback user for ${username}`);
+    return { id: null, username, fallback: true };
   }
 }
 
@@ -48,9 +75,15 @@ export default async function ContactPage({ params }) {
   const user = await getUserByUsername(username);
   
   // ถ้าไม่พบ user และไม่ใช่ fallback user ให้แสดง 404
+  // (fallback user means backend unavailable, so we show page anyway)
   if (!user || (!user.id && !user.fallback)) {
-    console.warn(`[ContactPage] User ${username} not found, showing 404`);
+    console.warn(`[ContactPage] User ${username} not found in database, showing 404`);
     notFound();
+  }
+  
+  // Log if using fallback user
+  if (user?.fallback) {
+    console.log(`[ContactPage] Using fallback user for ${username} - backend may be unavailable`);
   }
   
   // Use user email (ถ้าเป็น fallback user ใช้ default email)
