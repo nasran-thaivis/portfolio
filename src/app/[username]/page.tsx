@@ -1,26 +1,11 @@
 import Link from "next/link";
 import { getSignedImageUrl } from "../../lib/imageUtils";
 import { notFound } from "next/navigation";
-import { getBaseUrl } from "../../lib/getBaseUrl";
+import { backendGetUserByUsername, backendGetHeroSection } from "../../lib/api";
 
 async function getUserByUsername(username: string) {
   try {
-    const baseUrl = getBaseUrl();
-    
-    // Validate baseUrl to prevent invalid URLs
-    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
-      console.error(`[UserProfile] Invalid baseUrl detected: ${baseUrl}`);
-      // Return fallback user instead of null to prevent 404
-      console.warn(`[UserProfile] Using fallback user due to invalid baseUrl`);
-      return { id: null, username, fallback: true };
-    }
-    
-    const url = `${baseUrl}/api/users/username/${username}`;
-    console.log(`[UserProfile] Fetching user: ${url}`);
-
-    const res = await fetch(url, {
-      cache: "no-store",
-    });
+    const res = await backendGetUserByUsername(username);
 
     // If response is not ok, check if it's a real 404 (user not found) or backend error
     if (!res.ok) {
@@ -79,20 +64,7 @@ async function getUserByUsername(username: string) {
 // 2. ฟังก์ชันดึงข้อมูล Hero Section จาก username
 async function getHeroData(username: string) {
   try {
-    const baseUrl = getBaseUrl();
-    
-    // Validate baseUrl to prevent invalid URLs
-    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
-      console.error(`[UserProfile] Invalid baseUrl detected: ${baseUrl}`);
-      return null; // Will use default hero data
-    }
-    
-    const url = `${baseUrl}/api/hero-section?username=${username}`;
-    console.log(`[UserProfile] Fetching hero data from: ${url}`);
-    
-    const res = await fetch(url, {
-      cache: "no-store",
-    });
+    const res = await backendGetHeroSection(username);
     
     if (!res.ok) {
       console.warn(`[UserProfile] Hero section fetch failed: ${res.status} - will use default data`);

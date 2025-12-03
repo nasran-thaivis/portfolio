@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ProjectCard from "../../components/ProjectCard";
+import { backendGetProjects } from "../../../lib/api";
 
 export default function PortfolioClient({ username }) {
   const [projects, setProjects] = useState([]);
@@ -11,12 +12,7 @@ export default function PortfolioClient({ username }) {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const projectsUrl = `/api/projects?username=${username}`;
-        console.log(`[PortfolioClient] Fetching projects: ${projectsUrl}`);
-        
-        const res = await fetch(projectsUrl, {
-          cache: "no-store",
-        });
+        const res = await backendGetProjects(username);
         
         if (!res.ok) {
           console.warn(`[PortfolioClient] Failed to fetch projects for ${username}, status: ${res.status}`);

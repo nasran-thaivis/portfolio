@@ -1,6 +1,6 @@
 import Container from "../../components/Container";
 import { notFound } from "next/navigation";
-import { getBaseUrl } from "../../../lib/getBaseUrl";
+import { backendGetUserByUsername, backendGetReviews } from "../../../lib/api";
 
 // Runtime configuration for Vercel
 export const runtime = 'nodejs';
@@ -8,21 +8,7 @@ export const dynamic = 'force-dynamic';
 
 async function getUserByUsername(username) {
   try {
-    const baseUrl = getBaseUrl();
-    
-    // Validate baseUrl to prevent invalid URLs
-    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
-      console.error(`[ReviewPage] Invalid baseUrl detected: ${baseUrl}`);
-      console.warn(`[ReviewPage] Using fallback user due to invalid baseUrl`);
-      return { id: null, username, fallback: true };
-    }
-    
-    const url = `${baseUrl}/api/users/username/${username}`;
-    console.log(`[ReviewPage] Fetching user: ${url}`);
-
-    const res = await fetch(url, {
-      cache: "no-store",
-    });
+    const res = await backendGetUserByUsername(username);
 
     // If response is not ok, check if it's a real 404 (user not found) or backend error
     if (!res.ok) {
@@ -67,10 +53,7 @@ async function getUserByUsername(username) {
 
 async function getReviews(username) {
   try {
-    const baseUrl = getBaseUrl();
-    const res = await fetch(`${baseUrl}/api/reviews?username=${username}`, {
-      cache: "no-store",
-    });
+    const res = await backendGetReviews(username);
     
     if (!res.ok) {
       console.warn(`[ReviewPage] Reviews fetch failed: ${res.status}`);

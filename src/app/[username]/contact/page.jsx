@@ -2,7 +2,7 @@ import { SOCIAL } from "../../data/socialLinks";
 import Container from "../../components/Container";
 import ContactForm from "./ContactForm";
 import { notFound } from "next/navigation";
-import { getBaseUrl } from "../../../lib/getBaseUrl";
+import { backendGetUserByUsername } from "../../../lib/api";
 
 // Runtime configuration for Vercel
 export const runtime = 'nodejs';
@@ -10,21 +10,7 @@ export const dynamic = 'force-dynamic';
 
 async function getUserByUsername(username) {
   try {
-    const baseUrl = getBaseUrl();
-    
-    // Validate baseUrl to prevent invalid URLs
-    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
-      console.error(`[ContactPage] Invalid baseUrl detected: ${baseUrl}`);
-      console.warn(`[ContactPage] Using fallback user due to invalid baseUrl`);
-      return { id: null, username, fallback: true };
-    }
-    
-    const url = `${baseUrl}/api/users/username/${username}`;
-    console.log(`[ContactPage] Fetching user: ${url}`);
-
-    const res = await fetch(url, {
-      cache: "no-store",
-    });
+    const res = await backendGetUserByUsername(username);
 
     // If response is not ok, check if it's a real 404 (user not found) or backend error
     if (!res.ok) {

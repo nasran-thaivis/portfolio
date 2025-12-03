@@ -1,7 +1,7 @@
 import Container from "../../components/Container";
 import { getSignedImageUrl } from "../../../lib/imageUtils";
 import { notFound } from "next/navigation";
-import { getBaseUrl } from "../../../lib/getBaseUrl";
+import { backendGetUserByUsername, backendGetAboutSection } from "../../../lib/api";
 
 // Runtime configuration for Vercel
 export const runtime = 'nodejs';
@@ -10,22 +10,7 @@ export const dynamic = 'force-dynamic';
 // 1. ฟังก์ชันดึงข้อมูล user จาก username
 async function getUserByUsername(username) {
   try {
-    const baseUrl = getBaseUrl();
-    
-    // Validate baseUrl to prevent invalid URLs
-    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
-      console.error(`[AboutPage] Invalid baseUrl detected: ${baseUrl}`);
-      console.warn(`[AboutPage] Using fallback user due to invalid baseUrl`);
-      return { id: null, username, fallback: true };
-    }
-    
-    // เรียกไปที่ API Route ของ Next.js (ซึ่งจะไปเรียก Backend จริงอีกที)
-    const url = `${baseUrl}/api/users/username/${username}`;
-    console.log(`[AboutPage] Fetching user: ${url}`);
-    
-    const res = await fetch(url, {
-      cache: "no-store",
-    });
+    const res = await backendGetUserByUsername(username);
     
     // If response is not ok, check if it's a real 404 (user not found) or backend error
     if (!res.ok) {
@@ -72,10 +57,7 @@ async function getUserByUsername(username) {
 // 2. ฟังก์ชันดึงข้อมูล Server Side (About Section)
 async function getAboutData(username) {
   try {
-    const baseUrl = getBaseUrl();
-    const res = await fetch(`${baseUrl}/api/about-section?username=${username}`, {
-      cache: "no-store",
-    });
+    const res = await backendGetAboutSection(username);
     
     if (!res.ok) {
       console.warn(`[AboutPage] About section fetch failed: ${res.status}`);
