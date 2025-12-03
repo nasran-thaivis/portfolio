@@ -64,4 +64,5 @@ export declare class UsersService {
     remove(id: string): Promise<{
         message: string;
     }>;
+    ensureUserExists(userIdOrUsername: string): Promise<any>;
 }

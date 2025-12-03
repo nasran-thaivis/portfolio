@@ -28,23 +28,23 @@ let AboutSectionController = class AboutSectionController {
     }
     async update(user, req, createAboutSectionDto) {
         try {
-            let userId = user?.id;
-            if (!userId) {
-                userId = req.headers['x-user-id'];
-                if (!userId) {
-                    const username = req.headers['x-username'];
-                    if (username) {
-                        console.log(`[AboutSectionController] No authenticated user, but username provided: ${username}`);
-                        userId = username;
-                    }
-                }
+            let identifier = user?.id;
+            const headerUsername = req.headers['x-username'];
+            const headerUserId = req.headers['x-user-id'];
+            if (!identifier && headerUsername) {
+                identifier = headerUsername;
+                console.log(`[AboutSectionController] Using username from header: ${headerUsername}`);
             }
-            if (!userId) {
+            else if (!identifier && headerUserId) {
+                identifier = headerUserId;
+                console.log(`[AboutSectionController] Using x-user-id from header: ${headerUserId}`);
+            }
+            if (!identifier) {
                 console.error('[AboutSectionController] Update attempted without authentication or userId/username');
                 throw new common_1.UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
             }
-            console.log(`[AboutSectionController] Updating about section for userId/username: ${userId}`);
-            return await this.aboutSectionService.update(userId, createAboutSectionDto);
+            console.log(`[AboutSectionController] Updating about section for userId/username: ${identifier}`);
+            return await this.aboutSectionService.update(identifier, createAboutSectionDto);
         }
         catch (error) {
             console.error('[AboutSectionController] Error updating about section:', error);
@@ -60,23 +60,23 @@ let AboutSectionController = class AboutSectionController {
         }
     }
     create(user, req, createAboutSectionDto) {
-        let userId = user?.id;
-        if (!userId) {
-            userId = req.headers['x-user-id'];
-            if (!userId) {
-                const username = req.headers['x-username'];
-                if (username) {
-                    console.log(`[AboutSectionController] No authenticated user, but username provided: ${username}`);
-                    userId = username;
-                }
-            }
+        let identifier = user?.id;
+        const headerUsername = req.headers['x-username'];
+        const headerUserId = req.headers['x-user-id'];
+        if (!identifier && headerUsername) {
+            identifier = headerUsername;
+            console.log(`[AboutSectionController] Using username from header (POST): ${headerUsername}`);
         }
-        if (!userId) {
+        else if (!identifier && headerUserId) {
+            identifier = headerUserId;
+            console.log(`[AboutSectionController] Using x-user-id from header (POST): ${headerUserId}`);
+        }
+        if (!identifier) {
             console.error('[AboutSectionController] Create attempted without authentication or userId/username');
             throw new common_1.UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
         }
-        console.log(`[AboutSectionController] Creating about section for userId/username: ${userId}`);
-        return this.aboutSectionService.update(userId, createAboutSectionDto);
+        console.log(`[AboutSectionController] Creating about section for userId/username: ${identifier}`);
+        return this.aboutSectionService.update(identifier, createAboutSectionDto);
     }
 };
 exports.AboutSectionController = AboutSectionController;

@@ -13,10 +13,12 @@ exports.HeroSectionService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const upload_service_1 = require("../upload/upload.service");
+const users_service_1 = require("../users/users.service");
 let HeroSectionService = class HeroSectionService {
-    constructor(prisma, uploadService) {
+    constructor(prisma, uploadService, usersService) {
         this.prisma = prisma;
         this.uploadService = uploadService;
+        this.usersService = usersService;
     }
     async findOne(userId, username) {
         let hero;
@@ -68,30 +70,9 @@ let HeroSectionService = class HeroSectionService {
         return result;
     }
     async update(userIdOrUsername, updateHeroSectionDto) {
-        let userId = userIdOrUsername;
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrUsername);
-        if (!isUUID) {
-            const isNumericId = /^\d+$/.test(userIdOrUsername);
-            if (isNumericId) {
-                console.log(`[HeroSectionService] Using numeric userId: ${userIdOrUsername}`);
-                userId = userIdOrUsername;
-            }
-            else {
-                console.log(`[HeroSectionService] Looking up userId for username: ${userIdOrUsername}`);
-                const user = await this.prisma.user.findUnique({
-                    where: { username: userIdOrUsername },
-                    select: { id: true },
-                });
-                if (!user) {
-                    throw new Error(`User with username "${userIdOrUsername}" not found in database. Please make sure the user exists.`);
-                }
-                userId = user.id;
-                console.log(`[HeroSectionService] Found userId: ${userId} for username: ${userIdOrUsername}`);
-            }
-        }
-        else {
-            console.log(`[HeroSectionService] Using UUID userId: ${userIdOrUsername}`);
-        }
+        const user = await this.usersService.ensureUserExists(userIdOrUsername);
+        const userId = user.id;
+        console.log(`[HeroSectionService] Updating hero section for userId: ${userId} (from: ${userIdOrUsername})`);
         const normalizedData = {
             ...updateHeroSectionDto,
             imageUrl: updateHeroSectionDto.imageUrl !== undefined
@@ -120,6 +101,7 @@ exports.HeroSectionService = HeroSectionService;
 exports.HeroSectionService = HeroSectionService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        upload_service_1.UploadService])
+        upload_service_1.UploadService,
+        users_service_1.UsersService])
 ], HeroSectionService);
 //# sourceMappingURL=hero-section.service.js.map

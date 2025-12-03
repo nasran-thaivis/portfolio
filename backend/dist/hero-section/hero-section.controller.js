@@ -28,42 +28,42 @@ let HeroSectionController = class HeroSectionController {
         return this.heroSectionService.findOne(userId, username);
     }
     update(user, req, updateHeroSectionDto) {
-        let userId = user?.id;
-        if (!userId) {
-            userId = req.headers['x-user-id'];
-            if (!userId) {
-                const username = req.headers['x-username'];
-                if (username) {
-                    console.log(`[HeroSectionController] No authenticated user, but username provided: ${username}`);
-                    userId = username;
-                }
-            }
+        let identifier = user?.id;
+        const headerUsername = req.headers['x-username'];
+        const headerUserId = req.headers['x-user-id'];
+        if (!identifier && headerUsername) {
+            identifier = headerUsername;
+            console.log(`[HeroSectionController] Using username from header: ${headerUsername}`);
         }
-        if (!userId) {
+        else if (!identifier && headerUserId) {
+            identifier = headerUserId;
+            console.log(`[HeroSectionController] Using x-user-id from header: ${headerUserId}`);
+        }
+        if (!identifier) {
             console.error('[HeroSectionController] Update attempted without authentication or userId/username');
             throw new common_1.UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
         }
-        console.log(`[HeroSectionController] Updating hero section for userId/username: ${userId}`);
-        return this.heroSectionService.update(userId, updateHeroSectionDto);
+        console.log(`[HeroSectionController] Updating hero section for userId/username: ${identifier}`);
+        return this.heroSectionService.update(identifier, updateHeroSectionDto);
     }
     create(user, req, createHeroSectionDto) {
-        let userId = user?.id;
-        if (!userId) {
-            userId = req.headers['x-user-id'];
-            if (!userId) {
-                const username = req.headers['x-username'];
-                if (username) {
-                    console.log(`[HeroSectionController] No authenticated user, but username provided: ${username}`);
-                    userId = username;
-                }
-            }
+        let identifier = user?.id;
+        const headerUsername = req.headers['x-username'];
+        const headerUserId = req.headers['x-user-id'];
+        if (!identifier && headerUsername) {
+            identifier = headerUsername;
+            console.log(`[HeroSectionController] Using username from header (POST): ${headerUsername}`);
         }
-        if (!userId) {
+        else if (!identifier && headerUserId) {
+            identifier = headerUserId;
+            console.log(`[HeroSectionController] Using x-user-id from header (POST): ${headerUserId}`);
+        }
+        if (!identifier) {
             console.error('[HeroSectionController] Create attempted without authentication or userId/username');
             throw new common_1.UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
         }
-        console.log(`[HeroSectionController] Creating hero section for userId/username: ${userId}`);
-        return this.heroSectionService.update(userId, createHeroSectionDto);
+        console.log(`[HeroSectionController] Creating hero section for userId/username: ${identifier}`);
+        return this.heroSectionService.update(identifier, createHeroSectionDto);
     }
 };
 exports.HeroSectionController = HeroSectionController;

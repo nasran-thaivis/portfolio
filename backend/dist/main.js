@@ -34,7 +34,7 @@ async function bootstrap() {
         },
     }));
     app.useGlobalFilters(new http_exception_filter_1.HttpExceptionFilter());
-    const port = process.env.PORT || 3005;
+    const port = process.env.PORT || 3001;
     await app.listen(port);
     console.log(`🚀 Backend is running on: http://localhost:${port}/api`);
 }

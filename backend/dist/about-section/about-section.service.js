@@ -13,10 +13,12 @@ exports.AboutSectionService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const upload_service_1 = require("../upload/upload.service");
+const users_service_1 = require("../users/users.service");
 let AboutSectionService = class AboutSectionService {
-    constructor(prisma, uploadService) {
+    constructor(prisma, uploadService, usersService) {
         this.prisma = prisma;
         this.uploadService = uploadService;
+        this.usersService = usersService;
     }
     async findOne(userId, username) {
         let about;
@@ -69,37 +71,9 @@ let AboutSectionService = class AboutSectionService {
     }
     async update(userIdOrUsername, createAboutSectionDto) {
         try {
-            let userId = userIdOrUsername;
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrUsername);
-            if (!isUUID) {
-                const isCUID = /^c[a-z0-9]{24}$/i.test(userIdOrUsername);
-                if (isCUID) {
-                    console.log(`[AboutSectionService] Using CUID userId: ${userIdOrUsername}`);
-                    userId = userIdOrUsername;
-                }
-                else {
-                    const isNumericId = /^\d+$/.test(userIdOrUsername);
-                    if (isNumericId) {
-                        console.log(`[AboutSectionService] Using numeric userId: ${userIdOrUsername}`);
-                        userId = userIdOrUsername;
-                    }
-                    else {
-                        console.log(`[AboutSectionService] Looking up userId for username: ${userIdOrUsername}`);
-                        const user = await this.prisma.user.findUnique({
-                            where: { username: userIdOrUsername },
-                            select: { id: true },
-                        });
-                        if (!user) {
-                            throw new common_1.NotFoundException(`User with username "${userIdOrUsername}" not found in database. Please make sure the user exists.`);
-                        }
-                        userId = user.id;
-                        console.log(`[AboutSectionService] Found userId: ${userId} for username: ${userIdOrUsername}`);
-                    }
-                }
-            }
-            else {
-                console.log(`[AboutSectionService] Using UUID userId: ${userIdOrUsername}`);
-            }
+            const user = await this.usersService.ensureUserExists(userIdOrUsername);
+            const userId = user.id;
+            console.log(`[AboutSectionService] Updating about section for userId: ${userId} (from: ${userIdOrUsername})`);
             let normalizedImageUrl = createAboutSectionDto.imageUrl;
             if (createAboutSectionDto.imageUrl !== undefined && createAboutSectionDto.imageUrl) {
                 try {
@@ -148,6 +122,7 @@ exports.AboutSectionService = AboutSectionService;
 exports.AboutSectionService = AboutSectionService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        upload_service_1.UploadService])
+        upload_service_1.UploadService,
+        users_service_1.UsersService])
 ], AboutSectionService);
 //# sourceMappingURL=about-section.service.js.map

@@ -11,12 +11,13 @@ const common_1 = require("@nestjs/common");
 const hero_section_service_1 = require("./hero-section.service");
 const hero_section_controller_1 = require("./hero-section.controller");
 const upload_module_1 = require("../upload/upload.module");
+const users_module_1 = require("../users/users.module");
 let HeroSectionModule = class HeroSectionModule {
 };
 exports.HeroSectionModule = HeroSectionModule;
 exports.HeroSectionModule = HeroSectionModule = __decorate([
     (0, common_1.Module)({
-        imports: [upload_module_1.UploadModule],
+        imports: [upload_module_1.UploadModule, users_module_1.UsersModule],
         controllers: [hero_section_controller_1.HeroSectionController],
         providers: [hero_section_service_1.HeroSectionService],
     })
