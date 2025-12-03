@@ -1,20 +1,33 @@
 // src/projects/projects.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadService } from '../upload/upload.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private prisma: PrismaService,
     private uploadService: UploadService,
+    private usersService: UsersService,
   ) {}
 
   // 2. ฟังก์ชันสร้างโปรเจกต์ใหม่ (POST)
-  async create(userId: string, createProjectDto: CreateProjectDto) {
+  /**
+   * สร้าง Project ใหม่โดยรองรับทั้ง userId และ username
+   * - identifier อาจเป็น userId จริง, username, หรือค่าอื่นจาก Admin Dashboard
+   * - ใช้ UsersService.ensureUserExists() เพื่อหา/สร้าง user ใน DB ก่อน
+   */
+  async create(identifier: string, createProjectDto: CreateProjectDto) {
+    // Ensure user exists in database (create if not exists)
+    const user = await this.usersService.ensureUserExists(identifier);
+    const userId = user.id;
+
+    console.log(`[ProjectsService] Creating project for userId: ${userId} (from: ${identifier})`);
+
     // แปลง proxy URL กลับเป็น path ก่อนบันทึกลง database
     const normalizedData = {
       ...createProjectDto,
@@ -82,8 +95,11 @@ export class ProjectsService {
   async update(userId: string, id: string, updateProjectDto: UpdateProjectDto) {
     // Verify project belongs to user
     const existingProject = await this.prisma.project.findUnique({ where: { id } });
-    if (!existingProject || existingProject.userId !== userId) {
-      throw new Error('Project not found or access denied');
+    if (!existingProject) {
+      throw new NotFoundException('Project not found');
+    }
+    if (existingProject.userId !== userId) {
+      throw new ForbiddenException('Access denied. This project belongs to another user.');
     }
     // แปลง proxy URL กลับเป็น path ก่อนบันทึกลง database
     const normalizedData = {
@@ -112,8 +128,11 @@ export class ProjectsService {
   async remove(userId: string, id: string) {
     // Verify project belongs to user
     const project = await this.prisma.project.findUnique({ where: { id } });
-    if (!project || project.userId !== userId) {
-      throw new Error('Project not found or access denied');
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.userId !== userId) {
+      throw new ForbiddenException('Access denied. This project belongs to another user.');
     }
     return this.prisma.project.delete({ where: { id } });
   }
