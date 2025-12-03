@@ -15,7 +15,7 @@
 const requiredEnvVars = {
   DATABASE_URL: {
     required: true,
-    description: 'PostgreSQL database connection URL',
+    description: 'Database connection URL (MySQL or PostgreSQL)',
     validate: (value) => {
       if (!value) {
         return { valid: false, error: 'DATABASE_URL is not set' };
@@ -26,15 +26,15 @@ const requiredEnvVars = {
       if (isProduction && (value.includes('localhost') || value.includes('127.0.0.1'))) {
         return {
           valid: false,
-          error: 'DATABASE_URL contains localhost/127.0.0.1 in production. Use Render PostgreSQL database URL instead.'
+          error: 'DATABASE_URL contains localhost/127.0.0.1 in production. Use production database URL instead.'
         };
       }
       
-      // Check format
-      if (!value.startsWith('postgresql://') && !value.startsWith('postgres://')) {
+      // Check format (MySQL or PostgreSQL)
+      if (!value.startsWith('mysql://') && !value.startsWith('postgresql://') && !value.startsWith('postgres://')) {
         return {
           valid: false,
-          error: 'DATABASE_URL must start with postgresql:// or postgres://'
+          error: 'DATABASE_URL must start with mysql://, postgresql:// or postgres://'
         };
       }
       
@@ -137,10 +137,11 @@ function validateEnvironment() {
     console.log('\n📚 Troubleshooting:');
     console.log('1. For Render.com deployment:');
     console.log('   - Go to Render Dashboard → Your Web Service → Environment');
-    console.log('   - Set DATABASE_URL to your Render PostgreSQL Internal Database URL');
-    console.log('   - Copy URL from: Render Dashboard → Your PostgreSQL Service → Internal Database URL');
+    console.log('   - Set DATABASE_URL to your database connection URL');
     console.log('2. Make sure DATABASE_URL does not contain localhost or 127.0.0.1');
-    console.log('3. Format: postgresql://username:password@host:port/database?schema=public');
+    console.log('3. Format examples:');
+    console.log('   - MySQL: mysql://username:password@host:port/database');
+    console.log('   - PostgreSQL: postgresql://username:password@host:port/database?schema=public');
     process.exit(1);
   } else if (hasWarnings) {
     console.log('⚠️  Validation passed with warnings. Review the warnings above.');

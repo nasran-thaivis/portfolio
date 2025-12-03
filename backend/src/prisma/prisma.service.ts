@@ -30,9 +30,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@');
     this.logger.log(`📝 DATABASE_URL: ${maskedUrl}`);
     
-    // Validate DATABASE_URL format
-    if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
-      this.logger.warn('⚠️ WARNING: DATABASE_URL does not start with postgresql:// or postgres://');
+    // Validate DATABASE_URL format (MySQL or PostgreSQL)
+    if (!dbUrl.startsWith('mysql://') && !dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+      this.logger.warn('⚠️ WARNING: DATABASE_URL should start with mysql://, postgresql:// or postgres://');
     }
   }
 
@@ -44,7 +44,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       while (retries < maxRetries) {
         try {
           await this.$connect();
-          this.logger.log('✅ Connected to PostgreSQL database');
+          const currentDbUrl = process.env.DATABASE_URL || '';
+          const dbType = currentDbUrl.startsWith('mysql://') ? 'MySQL' : 'PostgreSQL';
+          this.logger.log(`✅ Connected to ${dbType} database`);
           return;
         } catch (error) {
           retries++;
@@ -61,7 +63,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
                   this.logger.error('');
                   this.logger.error('🔍 Troubleshooting steps:');
                   this.logger.error('1. Verify DATABASE_URL is correctly set in your environment variables');
-                  this.logger.error('2. For Render.com: Check that DATABASE_URL points to your Render PostgreSQL database');
+                  this.logger.error('2. Check that DATABASE_URL points to your database (MySQL or PostgreSQL)');
                   this.logger.error('3. Ensure the database server is running and accessible');
                   this.logger.error('4. Check network connectivity and firewall settings');
                 } else if (error.message.includes('authentication failed')) {
