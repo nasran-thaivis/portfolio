@@ -1,11 +1,13 @@
 import { CreateReviewDto } from './dto/create-review.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadService } from '../upload/upload.service';
+import { UsersService } from '../users/users.service';
 export declare class ReviewsService {
     private prisma;
     private uploadService;
-    constructor(prisma: PrismaService, uploadService: UploadService);
-    create(username: string, createReviewDto: CreateReviewDto): Promise<{
+    private usersService;
+    constructor(prisma: PrismaService, uploadService: UploadService, usersService: UsersService);
+    create(identifier: string, createReviewDto: CreateReviewDto): Promise<{
         name: string;
         id: string;
         createdAt: Date;

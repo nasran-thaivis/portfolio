@@ -2,7 +2,7 @@ import { ReviewsService } from './reviews.service';
 export declare class ReviewsController {
     private readonly reviewsService;
     constructor(reviewsService: ReviewsService);
-    create(body: any): Promise<{
+    create(user: any, req: any, body: any): Promise<{
         name: string;
         id: string;
         createdAt: Date;

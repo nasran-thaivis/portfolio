@@ -22,11 +22,31 @@ let ProjectsController = class ProjectsController {
     constructor(projectsService) {
         this.projectsService = projectsService;
     }
-    create(user, createProjectDto) {
-        if (!user) {
-            throw new Error('Authentication required');
+    async create(user, req, createProjectDto) {
+        try {
+            let identifier = user?.id;
+            const headerUsername = req.headers['x-username'];
+            const headerUserId = req.headers['x-user-id'];
+            if (!identifier && headerUsername) {
+                identifier = headerUsername;
+                console.log(`[ProjectsController] Using username from header: ${headerUsername}`);
+            }
+            else if (!identifier && headerUserId) {
+                identifier = headerUserId;
+                console.log(`[ProjectsController] Using x-user-id from header: ${headerUserId}`);
+            }
+            if (!identifier) {
+                console.error('[ProjectsController] Create attempted without authentication or userId/username');
+                throw new common_1.UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
+            }
+            console.log(`[ProjectsController] Creating project for userId/username: ${identifier}`);
+            console.log(`[ProjectsController] Request body:`, JSON.stringify(createProjectDto, null, 2));
+            return await this.projectsService.create(identifier, createProjectDto);
         }
-        return this.projectsService.create(user.id, createProjectDto);
+        catch (error) {
+            console.error('[ProjectsController] Error in create:', error);
+            throw error;
+        }
     }
     findAll(req) {
         const userId = req.user?.id;
@@ -38,13 +58,13 @@ let ProjectsController = class ProjectsController {
     }
     update(user, id, updateProjectDto) {
         if (!user) {
-            throw new Error('Authentication required');
+            throw new common_1.UnauthorizedException('Authentication required');
         }
         return this.projectsService.update(user.id, id, updateProjectDto);
     }
     remove(user, id) {
         if (!user) {
-            throw new Error('Authentication required');
+            throw new common_1.UnauthorizedException('Authentication required');
         }
         return this.projectsService.remove(user.id, id);
     }
@@ -53,10 +73,11 @@ exports.ProjectsController = ProjectsController;
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Body)()),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, create_project_dto_1.CreateProjectDto]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [Object, Object, create_project_dto_1.CreateProjectDto]),
+    __metadata("design:returntype", Promise)
 ], ProjectsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),

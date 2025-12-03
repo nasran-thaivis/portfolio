@@ -76,12 +76,25 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    
+    // Parse request body (log error ถ้า parse ไม่ได้)
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (parseError: any) {
+      console.error("[API Proxy] Failed to parse JSON body for POST /api/projects:", parseError);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid JSON body",
+        },
+        { status: 400 }
+      );
+    }
+
     // Get authentication headers from request
     const userId = request.headers.get('x-user-id') || '';
     const username = request.headers.get('x-username') || '';
-    
+
     const backendUrl = `${API_URL}/api/projects`;
 
     // Prepare headers for backend request
@@ -92,41 +105,70 @@ export async function POST(request: NextRequest) {
     if (username) headers['x-username'] = username;
 
     try {
+      // ส่งต่อไปยัง NestJS ผ่าน fetchWithTimeout
       const response = await fetchWithTimeout(backendUrl, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        return NextResponse.json(data);
+      const text = await response.text();
+      let data: any = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (jsonError) {
+        console.warn("[API Proxy] Non-JSON response from backend POST /api/projects:", text);
       }
 
-      const errorData = await response.json().catch(() => ({}));
+      if (response.ok) {
+        // บันทึกสำเร็จ
+        return NextResponse.json(data, { status: 201 });
+      }
+
+      // ถ้า backend ตอบ error ให้ส่งข้อความนั้นออกมาเลย
+      const message =
+        data?.message ||
+        data?.error ||
+        data?.detail ||
+        `Failed to create project (status ${response.status})`;
+
+      console.error("[API Proxy] Backend error from POST /api/projects:", {
+        status: response.status,
+        message,
+        data,
+      });
+
       return NextResponse.json(
-        { success: false, message: errorData.message || "Failed to create project" },
+        {
+          success: false,
+          message,
+        },
         { status: response.status }
       );
     } catch (fetchError: any) {
-      // Network error or timeout
-      if (
-        fetchError.name === 'AbortError' ||
-        (fetchError.name === 'TypeError' && fetchError.message.includes('fetch'))
-      ) {
-        console.warn(`[API Proxy] Backend unavailable for POST /api/projects`);
-        return NextResponse.json(
-          { success: false, message: "Backend is not available. Please make sure the backend server is running." },
-          { status: 503 }
-        );
-      }
+      // Network error / timeout
+      console.error("[API Proxy] Network error calling backend POST /api/projects:", fetchError);
 
-      throw fetchError;
+      const isTimeout =
+        fetchError?.name === "AbortError" ||
+        (fetchError?.name === "TypeError" && String(fetchError?.message || "").includes("fetch"));
+
+      const message = isTimeout
+        ? "Backend service timeout while creating project"
+        : fetchError?.message || "Failed to reach backend service";
+
+      return NextResponse.json(
+        {
+          success: false,
+          message,
+        },
+        { status: 502 }
+      );
     }
   } catch (error: any) {
     console.error(`[API Proxy] Error in POST /api/projects:`, error);
     return NextResponse.json(
-      { success: false, message: "Internal server error" },
+      { success: false, message: error?.message || "Internal server error" },
       { status: 500 }
     );
   }

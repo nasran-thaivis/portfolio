@@ -34,8 +34,8 @@ let PrismaService = PrismaService_1 = class PrismaService extends client_1.Prism
         }
         const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@');
         this.logger.log(`📝 DATABASE_URL: ${maskedUrl}`);
-        if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
-            this.logger.warn('⚠️ WARNING: DATABASE_URL does not start with postgresql:// or postgres://');
+        if (!dbUrl.startsWith('mysql://') && !dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+            this.logger.warn('⚠️ WARNING: DATABASE_URL should start with mysql://, postgresql:// or postgres://');
         }
     }
     async onModuleInit() {
@@ -45,7 +45,9 @@ let PrismaService = PrismaService_1 = class PrismaService extends client_1.Prism
             while (retries < maxRetries) {
                 try {
                     await this.$connect();
-                    this.logger.log('✅ Connected to PostgreSQL database');
+                    const currentDbUrl = process.env.DATABASE_URL || '';
+                    const dbType = currentDbUrl.startsWith('mysql://') ? 'MySQL' : 'PostgreSQL';
+                    this.logger.log(`✅ Connected to ${dbType} database`);
                     return;
                 }
                 catch (error) {
@@ -61,7 +63,7 @@ let PrismaService = PrismaService_1 = class PrismaService extends client_1.Prism
                                     this.logger.error('');
                                     this.logger.error('🔍 Troubleshooting steps:');
                                     this.logger.error('1. Verify DATABASE_URL is correctly set in your environment variables');
-                                    this.logger.error('2. For Render.com: Check that DATABASE_URL points to your Render PostgreSQL database');
+                                    this.logger.error('2. Check that DATABASE_URL points to your database (MySQL or PostgreSQL)');
                                     this.logger.error('3. Ensure the database server is running and accessible');
                                     this.logger.error('4. Check network connectivity and firewall settings');
                                 }

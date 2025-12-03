@@ -4,7 +4,7 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 export declare class ProjectsController {
     private readonly projectsService;
     constructor(projectsService: ProjectsService);
-    create(user: any, createProjectDto: CreateProjectDto): Promise<{
+    create(user: any, req: any, createProjectDto: CreateProjectDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;

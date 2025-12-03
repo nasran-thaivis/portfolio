@@ -1,6 +1,6 @@
 // src/projects/projects.service.ts
 
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,31 +22,77 @@ export class ProjectsService {
    * - ใช้ UsersService.ensureUserExists() เพื่อหา/สร้าง user ใน DB ก่อน
    */
   async create(identifier: string, createProjectDto: CreateProjectDto) {
-    // Ensure user exists in database (create if not exists)
-    const user = await this.usersService.ensureUserExists(identifier);
-    const userId = user.id;
+    try {
+      // Ensure user exists in database (create if not exists)
+      const user = await this.usersService.ensureUserExists(identifier);
+      const userId = user.id;
 
-    console.log(`[ProjectsService] Creating project for userId: ${userId} (from: ${identifier})`);
+      console.log(`[ProjectsService] Creating project for userId: ${userId} (from: ${identifier})`);
+      console.log('[ProjectsService] Payload:', JSON.stringify(createProjectDto, null, 2));
 
-    // แปลง proxy URL กลับเป็น path ก่อนบันทึกลง database
-    const normalizedData = {
-      ...createProjectDto,
-      userId,
-      imageUrl: createProjectDto.imageUrl 
-        ? this.uploadService.normalizeImageUrl(createProjectDto.imageUrl)
-        : createProjectDto.imageUrl,
-    };
+      // แปลง proxy URL กลับเป็น path ก่อนบันทึกลง database
+      let normalizedImageUrl = createProjectDto.imageUrl;
+      if (createProjectDto.imageUrl) {
+        try {
+          normalizedImageUrl = this.uploadService.normalizeImageUrl(createProjectDto.imageUrl);
+          console.log(`[ProjectsService] Normalized imageUrl: ${createProjectDto.imageUrl} -> ${normalizedImageUrl}`);
+        } catch (error) {
+          console.warn(`[ProjectsService] Failed to normalize imageUrl: ${createProjectDto.imageUrl}`, error);
+          // ถ้า normalize ไม่ได้ ให้ใช้ค่าเดิม
+          normalizedImageUrl = createProjectDto.imageUrl;
+        }
+      }
 
-    const project = await this.prisma.project.create({
-      data: normalizedData,
-    });
+      const normalizedData = {
+        ...createProjectDto,
+        userId,
+        imageUrl: normalizedImageUrl,
+      };
 
-    // แปลง path เป็น proxy URL เมื่อ return ให้ frontend
-    if (project.imageUrl) {
-      project.imageUrl = this.uploadService.getProxyUrl(project.imageUrl);
+      console.log('[ProjectsService] Creating project with data:', JSON.stringify(normalizedData, null, 2));
+
+      const project = await this.prisma.project.create({
+        data: normalizedData,
+      });
+
+      console.log('[ProjectsService] Project created successfully:', project.id);
+
+      // แปลง path เป็น proxy URL เมื่อ return ให้ frontend
+      if (project.imageUrl) {
+        try {
+          project.imageUrl = this.uploadService.getProxyUrl(project.imageUrl);
+        } catch (error) {
+          console.warn(`[ProjectsService] Failed to get proxy URL for: ${project.imageUrl}`, error);
+        }
+      }
+
+      return project;
+    } catch (error: any) {
+      console.error('[ProjectsService] Error creating project:', error);
+      console.error('[ProjectsService] Error details:', {
+        code: error.code,
+        meta: error.meta,
+        message: error.message,
+        stack: error.stack,
+      });
+
+      // Prisma error (เช่น unique constraint, field ผิด type ฯลฯ)
+      if (error.code && error.code.startsWith('P')) {
+        const errorMessage = error.meta?.cause || error.meta?.target || error.message || 'Database error when creating project';
+        throw new BadRequestException(`Database error: ${errorMessage}`);
+      }
+
+      // NestJS exceptions - re-throw as-is
+      if (error instanceof BadRequestException || 
+          error instanceof NotFoundException || 
+          error instanceof ForbiddenException ||
+          error instanceof InternalServerErrorException) {
+        throw error;
+      }
+
+      // Other errors
+      throw new InternalServerErrorException(error.message || 'Failed to create project');
     }
-
-    return project;
   }
 
   // 3. ฟังก์ชันดึงข้อมูลทั้งหมด (GET)

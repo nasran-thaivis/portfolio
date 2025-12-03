@@ -20,12 +20,38 @@ let ReviewsController = class ReviewsController {
     constructor(reviewsService) {
         this.reviewsService = reviewsService;
     }
-    create(body) {
-        const { username, ...createReviewDto } = body;
-        if (!username) {
-            throw new common_1.BadRequestException('Username is required to create a review');
+    create(user, req, body) {
+        const bodyUsername = body.username;
+        const headerUsername = req.headers['x-username'];
+        const headerUserId = req.headers['x-user-id'];
+        let identifier;
+        if (bodyUsername) {
+            identifier = bodyUsername;
+            console.log(`[ReviewsController] Using username from body: ${bodyUsername}`);
         }
-        return this.reviewsService.create(username, createReviewDto);
+        else if (headerUsername) {
+            identifier = headerUsername;
+            console.log(`[ReviewsController] Using username from header: ${headerUsername}`);
+        }
+        else if (headerUserId) {
+            identifier = headerUserId;
+            console.log(`[ReviewsController] Using x-user-id from header: ${headerUserId}`);
+        }
+        else if (user?.username) {
+            identifier = user.username;
+            console.log(`[ReviewsController] Using username from current user: ${user.username}`);
+        }
+        else if (user?.id) {
+            identifier = user.id;
+            console.log(`[ReviewsController] Using id from current user: ${user.id}`);
+        }
+        if (!identifier) {
+            console.error('[ReviewsController] Create attempted without authentication or username');
+            throw new common_1.UnauthorizedException('Username or user identifier is required to create a review. Please provide username in body, or x-username/x-user-id header.');
+        }
+        const { username, ...createReviewDto } = body;
+        console.log(`[ReviewsController] Creating review for identifier: ${identifier}`);
+        return this.reviewsService.create(identifier, createReviewDto);
     }
     findAll(req) {
         const userId = req.user?.id;
@@ -34,7 +60,7 @@ let ReviewsController = class ReviewsController {
     }
     remove(user, id) {
         if (!user) {
-            throw new Error('Authentication required');
+            throw new common_1.UnauthorizedException('Authentication required');
         }
         return this.reviewsService.remove(user.id, id);
     }
@@ -42,9 +68,11 @@ let ReviewsController = class ReviewsController {
 exports.ReviewsController = ReviewsController;
 __decorate([
     (0, common_1.Post)(),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", void 0)
 ], ReviewsController.prototype, "create", null);
 __decorate([

@@ -134,25 +134,54 @@ export default function PortfolioEditor() {
       const headers = {
         "Content-Type": "application/json",
       };
-      if (currentUser?.id) headers['x-user-id'] = currentUser.id;
-      if (currentUser?.username) headers['x-username'] = currentUser.username;
+      if (currentUser?.id) headers["x-user-id"] = currentUser.id;
+      if (currentUser?.username) headers["x-username"] = currentUser.username;
 
       const res = await fetch("/api/projects", {
         method: "POST",
         headers,
         body: JSON.stringify(dataToSave),
       });
-
+      
       if (res.ok) {
         alert("✅ Project added successfully!");
         setFormData({ title: "", description: "", imageUrl: "", link: "" }); // ล้างฟอร์ม
         fetchProjects(); // ดึงข้อมูลใหม่มาโชว์ทันที
       } else {
-        alert("❌ Failed to add project");
+        // รองรับทั้งกรณี response เป็น JSON และ non‑JSON (เช่น HTML error page)
+        let rawBody = "";
+        let errorData = {};
+        try {
+          rawBody = await res.text();
+          if (rawBody) {
+            try {
+              errorData = JSON.parse(rawBody);
+            } catch {
+              // ไม่ใช่ JSON ก็ปล่อยไป ใช้ rawBody เป็นข้อความดิบ
+            }
+          }
+        } catch {
+          // ignore body read error
+        }
+
+        const message =
+          errorData.message ||
+          errorData.error ||
+          errorData.detail ||
+          (rawBody && typeof rawBody === "string" ? rawBody : "") ||
+          `Failed to add project (status ${res.status})`;
+
+        console.error("[PortfolioEditor] Failed to add project", {
+          status: res.status,
+          errorData,
+          rawBody,
+        });
+
+        alert(`❌ ${message}`);
       }
     } catch (error) {
-      console.error(error);
-      alert("Error connecting to server");
+      console.error("[PortfolioEditor] Save error:", error);
+      alert("❌ Error connecting to server");
     }
   };
 

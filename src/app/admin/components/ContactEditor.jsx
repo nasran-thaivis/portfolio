@@ -70,7 +70,7 @@ export default function ContactEditor() {
 
       const headers = {
         "Content-Type": "application/json",
-      } as Record<string, string>;
+      };
 
       // Add authentication headers
       if (currentUser?.id) {

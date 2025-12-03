@@ -2,11 +2,13 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadService } from '../upload/upload.service';
+import { UsersService } from '../users/users.service';
 export declare class ProjectsService {
     private prisma;
     private uploadService;
-    constructor(prisma: PrismaService, uploadService: UploadService);
-    create(userId: string, createProjectDto: CreateProjectDto): Promise<{
+    private usersService;
+    constructor(prisma: PrismaService, uploadService: UploadService, usersService: UsersService);
+    create(identifier: string, createProjectDto: CreateProjectDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;

@@ -13,6 +13,30 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
+ * Get base URL for Next.js API routes
+ * Works in both client-side and server-side rendering
+ */
+function getNextApiBaseUrl() {
+  // Client-side: use window.location.origin
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+
+  // Server-side: use environment variables
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+
+  // Vercel automatically sets VERCEL_URL
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  // Fallback to localhost for development
+  return 'http://localhost:3000';
+}
+
+/**
  * Get full **backend** API endpoint URL (NestJS)
  * @param {string} endpoint - Backend endpoint (e.g., '/api/hero-section')
  * @returns {string} - Full URL to Backend
@@ -63,37 +87,41 @@ export async function backendGetUserByUsername(username) {
   return res;
 }
 
-// Hero section
+// Hero section - เรียก Next.js API route (proxy to backend)
 export async function backendGetHeroSection(username) {
+  const baseUrl = getNextApiBaseUrl();
   const query = username ? `?username=${encodeURIComponent(username)}` : '';
-  const res = await fetchBackend(`/api/hero-section${query}`, {
+  const res = await fetch(`${baseUrl}/api/hero-section${query}`, {
     cache: 'no-store',
   });
   return res;
 }
 
-// About section
+// About section - เรียก Next.js API route (proxy to backend)
 export async function backendGetAboutSection(username) {
+  const baseUrl = getNextApiBaseUrl();
   const query = username ? `?username=${encodeURIComponent(username)}` : '';
-  const res = await fetchBackend(`/api/about-section${query}`, {
+  const res = await fetch(`${baseUrl}/api/about-section${query}`, {
     cache: 'no-store',
   });
   return res;
 }
 
-// Projects
+// Projects - เรียก Next.js API route (proxy to backend)
 export async function backendGetProjects(username) {
+  const baseUrl = getNextApiBaseUrl();
   const query = username ? `?username=${encodeURIComponent(username)}` : '';
-  const res = await fetchBackend(`/api/projects${query}`, {
+  const res = await fetch(`${baseUrl}/api/projects${query}`, {
     cache: 'no-store',
   });
   return res;
 }
 
-// Reviews
+// Reviews - เรียก Next.js API route (proxy to backend)
 export async function backendGetReviews(username) {
+  const baseUrl = getNextApiBaseUrl();
   const query = username ? `?username=${encodeURIComponent(username)}` : '';
-  const res = await fetchBackend(`/api/reviews${query}`, {
+  const res = await fetch(`${baseUrl}/api/reviews${query}`, {
     cache: 'no-store',
   });
   return res;

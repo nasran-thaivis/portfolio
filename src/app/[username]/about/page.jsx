@@ -34,11 +34,18 @@ async function getUserByUsername(username) {
       return data;
     }
     
-    // ✅ แก้ไข: เช็คแค่ว่ามีข้อมูล ID หรือ Username ส่งกลับมาไหม
-    // Backend ส่งมาเป็น { id: "...", username: "...", ... } เลยเช็คตรงๆ ได้เลย
-    if (data && (data.id || data.username)) {
-      console.log(`[AboutPage] User found: ${data.username}`);
-      return data;
+    // ✅ เช็คจากรูปแบบข้อมูลจริงที่ Backend ส่งกลับมา (raw user object)
+    // อาจเป็น { id: '...', username: '...', ... } โดยตรง หรือ { success: true, user: {...} }
+    let user = data;
+    if (data && data.user) {
+      // ถ้า response เป็น { success: true, user: {...} }
+      user = data.user;
+    }
+
+    // ✅ เช็คแค่ว่ามีข้อมูล ID หรือ Username ส่งกลับมาไหม
+    if (user && (user.id || user.username)) {
+      console.log(`[AboutPage] User found: ${user.username || username}`);
+      return user;
     }
     
     console.error(`[AboutPage] Invalid response format for user: ${username}`, data);

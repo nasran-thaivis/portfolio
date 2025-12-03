@@ -13,21 +13,20 @@ exports.ReviewsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const upload_service_1 = require("../upload/upload.service");
+const users_service_1 = require("../users/users.service");
 let ReviewsService = class ReviewsService {
-    constructor(prisma, uploadService) {
+    constructor(prisma, uploadService, usersService) {
         this.prisma = prisma;
         this.uploadService = uploadService;
+        this.usersService = usersService;
     }
-    async create(username, createReviewDto) {
-        const user = await this.prisma.user.findUnique({
-            where: { username: username },
-        });
-        if (!user) {
-            throw new common_1.NotFoundException(`User with username "${username}" not found`);
-        }
+    async create(identifier, createReviewDto) {
+        const user = await this.usersService.ensureUserExists(identifier);
+        const userId = user.id;
+        console.log(`[ReviewsService] Creating review for userId: ${userId} (from: ${identifier})`);
         const data = {
             ...createReviewDto,
-            userId: user.id,
+            userId,
             rating: Number(createReviewDto.rating),
             avatarUrl: createReviewDto.avatarUrl
                 ? this.uploadService.normalizeImageUrl(createReviewDto.avatarUrl)
@@ -68,8 +67,11 @@ let ReviewsService = class ReviewsService {
     }
     async remove(userId, id) {
         const review = await this.prisma.review.findUnique({ where: { id } });
-        if (!review || review.userId !== userId) {
-            throw new Error('Review not found or access denied');
+        if (!review) {
+            throw new common_1.NotFoundException('Review not found');
+        }
+        if (review.userId !== userId) {
+            throw new common_1.ForbiddenException('Access denied. This review belongs to another user.');
         }
         return this.prisma.review.delete({
             where: { id },
@@ -80,6 +82,7 @@ exports.ReviewsService = ReviewsService;
 exports.ReviewsService = ReviewsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        upload_service_1.UploadService])
+        upload_service_1.UploadService,
+        users_service_1.UsersService])
 ], ReviewsService);
 //# sourceMappingURL=reviews.service.js.map

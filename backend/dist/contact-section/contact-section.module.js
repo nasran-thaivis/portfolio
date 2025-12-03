@@ -6,20 +6,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ReviewsModule = void 0;
+exports.ContactSectionModule = void 0;
 const common_1 = require("@nestjs/common");
-const reviews_service_1 = require("./reviews.service");
-const reviews_controller_1 = require("./reviews.controller");
-const upload_module_1 = require("../upload/upload.module");
+const contact_section_service_1 = require("./contact-section.service");
+const contact_section_controller_1 = require("./contact-section.controller");
 const users_module_1 = require("../users/users.module");
-let ReviewsModule = class ReviewsModule {
+let ContactSectionModule = class ContactSectionModule {
 };
-exports.ReviewsModule = ReviewsModule;
-exports.ReviewsModule = ReviewsModule = __decorate([
+exports.ContactSectionModule = ContactSectionModule;
+exports.ContactSectionModule = ContactSectionModule = __decorate([
     (0, common_1.Module)({
-        imports: [upload_module_1.UploadModule, users_module_1.UsersModule],
-        controllers: [reviews_controller_1.ReviewsController],
-        providers: [reviews_service_1.ReviewsService],
+        imports: [users_module_1.UsersModule],
+        controllers: [contact_section_controller_1.ContactSectionController],
+        providers: [contact_section_service_1.ContactSectionService],
     })
-], ReviewsModule);
-//# sourceMappingURL=reviews.module.js.map
+], ContactSectionModule);
+//# sourceMappingURL=contact-section.module.js.map

@@ -11,40 +11,48 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Post()
-  create(@CurrentUser() user: any, @Req() req: any, @Body() createProjectDto: CreateProjectDto) {
-    /**
-     * รองรับทั้งสองกรณี:
-     * 1) มีการ auth ปกติ → ใช้ user.id จาก CurrentUser
-     * 2) มาจาก Admin Dashboard ผ่าน Next.js proxy → ใช้ header: x-username หรือ x-user-id
-     *
-     * จากนั้นส่ง identifier ไปที่ Service ซึ่งจะเรียก UsersService.ensureUserExists()
-     * เพื่อหา/สร้าง User ให้ตรงกับข้อมูลนี้
-     */
+  async create(@CurrentUser() user: any, @Req() req: any, @Body() createProjectDto: CreateProjectDto) {
+    try {
+      /**
+       * รองรับทั้งสองกรณี:
+       * 1) มีการ auth ปกติ → ใช้ user.id จาก CurrentUser
+       * 2) มาจาก Admin Dashboard ผ่าน Next.js proxy → ใช้ header: x-username หรือ x-user-id
+       *
+       * จากนั้นส่ง identifier ไปที่ Service ซึ่งจะเรียก UsersService.ensureUserExists()
+       * เพื่อหา/สร้าง User ให้ตรงกับข้อมูลนี้
+       */
 
-    // 1) เริ่มจาก user ที่ auth มาก่อน
-    let identifier = user?.id as string | undefined;
+      // 1) เริ่มจาก user ที่ auth มาก่อน
+      let identifier = user?.id as string | undefined;
 
-    // 2) แล้วค่อยดูจาก headers โดยให้ priority กับ x-username ก่อน
-    const headerUsername = req.headers['x-username'] as string | undefined;
-    const headerUserId = req.headers['x-user-id'] as string | undefined;
+      // 2) แล้วค่อยดูจาก headers โดยให้ priority กับ x-username ก่อน
+      const headerUsername = req.headers['x-username'] as string | undefined;
+      const headerUserId = req.headers['x-user-id'] as string | undefined;
 
-    if (!identifier && headerUsername) {
-      // ใช้ username เป็นตัวระบุหลัก (เหมาะกับ URL เช่น /johndoe)
-      identifier = headerUsername;
-      console.log(`[ProjectsController] Using username from header: ${headerUsername}`);
-    } else if (!identifier && headerUserId) {
-      // fallback เป็น userId จาก header
-      identifier = headerUserId;
-      console.log(`[ProjectsController] Using x-user-id from header: ${headerUserId}`);
+      if (!identifier && headerUsername) {
+        // ใช้ username เป็นตัวระบุหลัก (เหมาะกับ URL เช่น /johndoe)
+        identifier = headerUsername;
+        console.log(`[ProjectsController] Using username from header: ${headerUsername}`);
+      } else if (!identifier && headerUserId) {
+        // fallback เป็น userId จาก header
+        identifier = headerUserId;
+        console.log(`[ProjectsController] Using x-user-id from header: ${headerUserId}`);
+      }
+
+      if (!identifier) {
+        console.error('[ProjectsController] Create attempted without authentication or userId/username');
+        throw new UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
+      }
+
+      console.log(`[ProjectsController] Creating project for userId/username: ${identifier}`);
+      console.log(`[ProjectsController] Request body:`, JSON.stringify(createProjectDto, null, 2));
+      
+      return await this.projectsService.create(identifier, createProjectDto);
+    } catch (error: any) {
+      console.error('[ProjectsController] Error in create:', error);
+      // Re-throw NestJS exceptions as-is (จะถูกจัดการโดย HttpExceptionFilter)
+      throw error;
     }
-
-    if (!identifier) {
-      console.error('[ProjectsController] Create attempted without authentication or userId/username');
-      throw new UnauthorizedException('Authentication required. Please provide x-user-id or x-username header.');
-    }
-
-    console.log(`[ProjectsController] Creating project for userId/username: ${identifier}`);
-    return this.projectsService.create(identifier, createProjectDto);
   }
 
   @Get()
