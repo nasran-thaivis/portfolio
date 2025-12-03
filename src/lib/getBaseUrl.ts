@@ -1,4 +1,15 @@
 /**
+ * Clean URL by removing invalid characters and formatting
+ */
+function cleanUrl(url: string): string {
+  return url
+    .replace(/^https?:\/\//, '')  // Remove http:// or https:// if present
+    .replace(/,.*$/, '')          // Remove everything after comma (e.g., ",http")
+    .replace(/[^a-zA-Z0-9.\-:]/g, '') // Remove invalid characters
+    .trim();                       // Remove whitespace
+}
+
+/**
  * Get base URL for API calls
  * Works in both client-side and server-side rendering
  * 
@@ -21,12 +32,23 @@ export function getBaseUrl(): string {
   // Vercel automatically sets VERCEL_URL (e.g., "your-app.vercel.app")
   // We need to add https:// protocol
   if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+    const cleanedUrl = cleanUrl(process.env.VERCEL_URL);
+    return `https://${cleanedUrl}`;
   }
 
   // Use NEXT_PUBLIC_SITE_URL if set
   if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    // If it already has protocol, clean and return as is
+    if (siteUrl.startsWith('http://') || siteUrl.startsWith('https://')) {
+      const cleanedUrl = cleanUrl(siteUrl);
+      // Determine protocol
+      const protocol = siteUrl.startsWith('https://') ? 'https://' : 'http://';
+      return `${protocol}${cleanedUrl}`;
+    }
+    // If no protocol, assume https for production
+    const cleanedUrl = cleanUrl(siteUrl);
+    return `https://${cleanedUrl}`;
   }
 
   // Fallback to localhost for development

@@ -6,6 +6,13 @@ import { getBaseUrl } from "../../lib/getBaseUrl";
 async function getUserByUsername(username: string) {
   try {
     const baseUrl = getBaseUrl();
+    
+    // Validate baseUrl to prevent invalid URLs
+    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
+      console.error(`[UserProfile] Invalid baseUrl detected: ${baseUrl}`);
+      return null;
+    }
+    
     const url = `${baseUrl}/api/users/username/${username}`;
     console.log(`[UserProfile] Fetching user: ${url}`);
 
@@ -53,7 +60,17 @@ async function getUserByUsername(username: string) {
 async function getHeroData(username: string) {
   try {
     const baseUrl = getBaseUrl();
-    const res = await fetch(`${baseUrl}/api/hero-section?username=${username}`, {
+    
+    // Validate baseUrl to prevent invalid URLs
+    if (!baseUrl || baseUrl.includes(',http') || baseUrl.includes(',https')) {
+      console.error(`[UserProfile] Invalid baseUrl detected: ${baseUrl}`);
+      return null;
+    }
+    
+    const url = `${baseUrl}/api/hero-section?username=${username}`;
+    console.log(`[UserProfile] Fetching hero data from: ${url}`);
+    
+    const res = await fetch(url, {
       cache: "no-store",
     });
     
@@ -67,15 +84,19 @@ async function getHeroData(username: string) {
       data.imageUrl = getSignedImageUrl(data.imageUrl);
     }
     return data;
-  } catch (error) {
-    console.error("Error loading hero data:", error);
+  } catch (error: any) {
+    console.error(`[UserProfile] Error loading hero data for ${username}:`, {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+    });
     return null;
   }
 }
 
 export default async function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-
+  console.log(`[UserProfilePage] Fetching user: ${username}`);
   // ดึงข้อมูล user
   const user = await getUserByUsername(username);
   
