@@ -10,10 +10,10 @@ export declare class HeroSectionService {
     findOne(userId?: string, username?: string): Promise<any>;
     update(userIdOrUsername: string, updateHeroSectionDto: UpdateHeroSectionDto): Promise<{
         id: string;
-        updatedAt: Date;
         userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
+        updatedAt: Date;
     }>;
 }

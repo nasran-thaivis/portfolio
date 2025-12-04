@@ -79,16 +79,35 @@ export class HeroSectionService {
     const userId = user.id;
 
     console.log(`[HeroSectionService] Updating hero section for userId: ${userId} (from: ${userIdOrUsername})`);
+    console.log(`[HeroSectionService] Received data:`, updateHeroSectionDto);
 
     // แปลง proxy URL กลับเป็น path ก่อนบันทึกลง database
-    const normalizedData = {
-      ...updateHeroSectionDto,
-      imageUrl: updateHeroSectionDto.imageUrl !== undefined
-        ? (updateHeroSectionDto.imageUrl 
-            ? this.uploadService.normalizeImageUrl(updateHeroSectionDto.imageUrl)
-            : updateHeroSectionDto.imageUrl)
-        : undefined,
+    // ถ้า imageUrl เป็น empty string หรือ null ให้แปลงเป็น null
+    let normalizedImageUrl: string | null | undefined = undefined;
+    
+    if (updateHeroSectionDto.imageUrl !== undefined) {
+      if (updateHeroSectionDto.imageUrl && updateHeroSectionDto.imageUrl.trim()) {
+        // มีค่าและไม่ใช่ empty string
+        normalizedImageUrl = this.uploadService.normalizeImageUrl(updateHeroSectionDto.imageUrl);
+        console.log(`[HeroSectionService] Normalized imageUrl: ${normalizedImageUrl}`);
+      } else {
+        // เป็น empty string หรือ null ให้ตั้งเป็น null
+        normalizedImageUrl = null;
+        console.log(`[HeroSectionService] Setting imageUrl to null (empty string provided)`);
+      }
+    }
+
+    const normalizedData: any = {
+      title: updateHeroSectionDto.title,
+      description: updateHeroSectionDto.description,
     };
+    
+    // เพิ่ม imageUrl เฉพาะเมื่อมีค่า (undefined = ไม่เปลี่ยนแปลง, null = ลบ)
+    if (normalizedImageUrl !== undefined) {
+      normalizedData.imageUrl = normalizedImageUrl;
+    }
+
+    console.log(`[HeroSectionService] Normalized data to save:`, normalizedData);
 
     const result = await this.prisma.heroSection.upsert({
       where: { userId },
@@ -100,6 +119,8 @@ export class HeroSectionService {
         ...normalizedData,
       },
     });
+
+    console.log(`[HeroSectionService] Saved result:`, result);
 
     // แปลง path เป็น proxy URL เมื่อ return ให้ frontend
     if (result.imageUrl) {

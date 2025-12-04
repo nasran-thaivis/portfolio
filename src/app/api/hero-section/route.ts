@@ -76,11 +76,14 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { username, title, description, imageUrl } = body;
 
+    console.log("[API Proxy] PATCH /api/hero-section received:", { username, title, description, imageUrl });
+
     // Get authentication headers from request
     const userId = request.headers.get('x-user-id') || '';
     const requestUsername = request.headers.get('x-username') || username || '';
 
     if (!userId && !requestUsername) {
+      console.error("[API Proxy] Missing userId and username");
       return NextResponse.json({ message: "User ID or Username is required" }, { status: 400 });
     }
 
@@ -94,6 +97,8 @@ export async function PATCH(request: NextRequest) {
     if (userId) headers['x-user-id'] = userId;
     if (requestUsername) headers['x-username'] = requestUsername;
 
+    console.log("[API Proxy] Forwarding to backend:", backendUrl, { headers, body: { title, description, imageUrl } });
+
     try {
       const response = await fetchWithTimeout(backendUrl, {
         method: 'PATCH',
@@ -103,10 +108,12 @@ export async function PATCH(request: NextRequest) {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("[API Proxy] Backend response success:", data);
         return NextResponse.json(data);
       }
 
       const errorData = await response.json().catch(() => ({}));
+      console.error("[API Proxy] Backend response error:", response.status, errorData);
       return NextResponse.json(
         { message: errorData.message || "Failed to update hero section" },
         { status: response.status }

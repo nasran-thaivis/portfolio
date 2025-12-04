@@ -124,17 +124,22 @@ export default function HomeEditor() {
     
     try {
       // Normalize imageUrl to path before saving
+      // ถ้า imageUrl เป็น empty string ให้ส่ง null แทน
+      const imageUrlToSave = formData.imageUrl && formData.imageUrl.trim() 
+        ? normalizeImageUrl(formData.imageUrl) 
+        : null;
+      
       const dataToSave = {
-        ...formData,
-        imageUrl: formData.imageUrl ? normalizeImageUrl(formData.imageUrl) : formData.imageUrl,
-        username: currentUsername, // ส่งไปบอกหลังบ้านว่าเป็นของใคร (fallback ถ้า header ไม่มี)
+        title: formData.title || '',
+        description: formData.description || '',
+        imageUrl: imageUrlToSave,
+        username: currentUsername,
       };
 
       const headers = {
         "Content-Type": "application/json",
       };
 
-      // ส่งข้อมูล user จริงไปที่ API (ให้ backend ผูกกับ user ใน DB อย่างถูกต้อง)
       if (currentUser?.id) {
         headers["x-user-id"] = currentUser.id;
       }
@@ -149,11 +154,18 @@ export default function HomeEditor() {
       });
 
       if (res.ok) {
-        // const data = await res.json(); // ไม่จำเป็นต้องใช้ data ก็ได้
+        const data = await res.json(); // อ่าน response เพื่อตรวจสอบ
+        console.log("[HomeEditor] Save successful:", data);
         alert("✅ บันทึกข้อมูลเรียบร้อย! (ไปดูหน้าแรกได้เลย)");
+        
+        // อัปเดต formData ด้วยข้อมูลที่บันทึกสำเร็จ
+        if (data.imageUrl) {
+          setFormData({ ...formData, imageUrl: getSignedImageUrl(data.imageUrl) });
+        }
       } else {
         const errorData = await res.json().catch(() => ({}));
         const errorMessage = errorData.message || "บันทึกไม่สำเร็จ";
+        console.error("[HomeEditor] Save failed:", errorData);
         alert(`❌ ${errorMessage}`);
       }
     } catch (error) {

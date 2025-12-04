@@ -73,14 +73,26 @@ let HeroSectionService = class HeroSectionService {
         const user = await this.usersService.ensureUserExists(userIdOrUsername);
         const userId = user.id;
         console.log(`[HeroSectionService] Updating hero section for userId: ${userId} (from: ${userIdOrUsername})`);
+        console.log(`[HeroSectionService] Received data:`, updateHeroSectionDto);
+        let normalizedImageUrl = undefined;
+        if (updateHeroSectionDto.imageUrl !== undefined) {
+            if (updateHeroSectionDto.imageUrl && updateHeroSectionDto.imageUrl.trim()) {
+                normalizedImageUrl = this.uploadService.normalizeImageUrl(updateHeroSectionDto.imageUrl);
+                console.log(`[HeroSectionService] Normalized imageUrl: ${normalizedImageUrl}`);
+            }
+            else {
+                normalizedImageUrl = null;
+                console.log(`[HeroSectionService] Setting imageUrl to null (empty string provided)`);
+            }
+        }
         const normalizedData = {
-            ...updateHeroSectionDto,
-            imageUrl: updateHeroSectionDto.imageUrl !== undefined
-                ? (updateHeroSectionDto.imageUrl
-                    ? this.uploadService.normalizeImageUrl(updateHeroSectionDto.imageUrl)
-                    : updateHeroSectionDto.imageUrl)
-                : undefined,
+            title: updateHeroSectionDto.title,
+            description: updateHeroSectionDto.description,
         };
+        if (normalizedImageUrl !== undefined) {
+            normalizedData.imageUrl = normalizedImageUrl;
+        }
+        console.log(`[HeroSectionService] Normalized data to save:`, normalizedData);
         const result = await this.prisma.heroSection.upsert({
             where: { userId },
             update: normalizedData,
@@ -91,6 +103,7 @@ let HeroSectionService = class HeroSectionService {
                 ...normalizedData,
             },
         });
+        console.log(`[HeroSectionService] Saved result:`, result);
         if (result.imageUrl) {
             result.imageUrl = this.uploadService.getProxyUrl(result.imageUrl);
         }

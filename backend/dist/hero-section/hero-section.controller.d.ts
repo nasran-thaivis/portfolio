@@ -7,18 +7,18 @@ export declare class HeroSectionController {
     findOne(req: any): Promise<any>;
     update(user: any, req: any, updateHeroSectionDto: UpdateHeroSectionDto): Promise<{
         id: string;
-        updatedAt: Date;
         userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
+        updatedAt: Date;
     }>;
     create(user: any, req: any, createHeroSectionDto: CreateHeroSectionDto): Promise<{
         id: string;
-        updatedAt: Date;
         userId: string;
         title: string;
         description: string | null;
         imageUrl: string | null;
+        updatedAt: Date;
     }>;
 }
